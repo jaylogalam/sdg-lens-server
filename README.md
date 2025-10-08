@@ -21,5 +21,9 @@ pip install -r requirements.txt
 ### 4. Run uvicorn
 
 ```bash
+# Navigate to src folder
+cd src
+
+# Run server using uvicorn
 uvicorn server:app --reload
 ```
