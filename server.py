@@ -1,14 +1,13 @@
 # Server entry file
-from fastapi import FastAPI
-from supabase_db import db
+from fastapi import FastAPI, Response
 
 app = FastAPI()
 
+# Routers
+from routers.text import router as text_route
+app.include_router(text_route)
+
+# Root function
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
-
-@app.get("/test")
-def read_test():
-    data = db.table("main").select("*").execute()
-    return {"data": data.data}
+    return Response("Server is running")
