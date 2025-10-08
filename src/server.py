@@ -1,5 +1,5 @@
 # Server entry file
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
 
 app = FastAPI()
 
@@ -10,4 +10,4 @@ register_routes(app)
 # Root function
 @app.get("/")
 def read_root():
-    return Response("Server is running")
+    return "Server is running"
