@@ -4,8 +4,8 @@ from fastapi import FastAPI, Response
 app = FastAPI()
 
 # Routers
-from routers.text import router as text_route
-app.include_router(text_route)
+from routers import text_router
+app.include_router(text_router)
 
 # Root function
 @app.get("/")
