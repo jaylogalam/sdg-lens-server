@@ -7,9 +7,9 @@
         "**/Thumbs.db": true,
 
         "**/__pycache__": true,
-        // "**/.gitignore": true,
-        // "**/README.md": true,
-        // "**/requirements.txt": true,
+        "**/.gitignore": true,
+        "**/README.md": true,
+        "**/requirements.txt": true,
         ".venv": true
         
 
