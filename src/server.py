@@ -3,9 +3,9 @@ from fastapi import FastAPI, Response
 
 app = FastAPI()
 
-# Routers
-from routers import text_router
-app.include_router(text_router)
+# Register routes
+from core import register_routes
+register_routes(app)
 
 # Root function
 @app.get("/")
