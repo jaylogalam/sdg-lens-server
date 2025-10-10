@@ -1,1 +1,1 @@
-from .controller import router as _
+from .controller.controller import router as _
