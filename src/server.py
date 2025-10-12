@@ -3,11 +3,11 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-# Register routes
-from core import register_routes
-register_routes(app)
+# Register router
+from core import register_router
+register_router(app)
 
 # Root function
 @app.get("/")
-def read_root():
+def read_root() -> str:
     return "Server is running"

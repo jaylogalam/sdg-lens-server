@@ -1,1 +1,1 @@
-from .routes import register_routes
+from .router import register_router
