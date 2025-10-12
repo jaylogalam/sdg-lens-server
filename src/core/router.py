@@ -1,9 +1,14 @@
-# Registers all route modules to the main FastAPI application.
+"""App router
+Registers all router modules to the main FastAPI application.
+
+Routers are imported from the features package
+
+register_router():
+    This function imports routers (e.g., convert_router) from the features package
+    and attaches them to the given FastAPI app instance using include_router().
+"""
 
 from fastapi import FastAPI
-
-# This function imports routers (e.g., convert_router) from the features package
-# and attaches them to the given FastAPI app instance using include_router().
 
 def register_router(app: FastAPI) -> None:
     from features import convert_router
