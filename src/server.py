@@ -1,13 +1,13 @@
-# Server entry file
+# This is the main entry point of the FastAPI server.
 from fastapi import FastAPI
 
 app = FastAPI()
 
-# Register router
+# Import and register all API routers from the 'core' module.
 from core import register_router
 register_router(app)
 
-# Root function
+# Root endpoint
 @app.get("/")
 def read_root() -> str:
     return "Server is running"
