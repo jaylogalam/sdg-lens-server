@@ -1,11 +1,11 @@
-from database import db
+from ....database import db
 from .model import SignupModel
 
-def signup_using_password(data: SignupModel):
-    # Step 1: Sign up user in Supabase Auth
+def create_user_with_email_password(email: str, password: str):
     auth_response = db.auth.sign_up(
-        {"email": data.email, "password": data.password}
+        {"email": email, "password": password}
     )
+    
     user = auth_response.user
 
     if not user:
