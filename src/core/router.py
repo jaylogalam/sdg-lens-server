@@ -13,3 +13,6 @@ from fastapi import FastAPI
 def register_router(app: FastAPI) -> None:
     from features import convert_router
     app.include_router(convert_router)
+
+    from features import signup_router
+    app.include_router(signup_router)
