@@ -7,7 +7,7 @@ def test_signup():
         "password": "123456"
     }
 
-    print(requests.post(f"{host_url}/signup/password", json=data).json())
+    print(requests.get(f"{host_url}/signup/password").json())
 
 if __name__ == "__main__":
     test_signup()
