@@ -1,0 +1,3 @@
+class ProfileServices:
+    def initialize_profile(self):
+        ...

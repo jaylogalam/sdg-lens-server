@@ -4,7 +4,7 @@ from fastapi import FastAPI
 app = FastAPI()
 
 # Import and register all API routers from the 'core' module.
-from core import register_router
+from routers import register_router
 register_router(app)
 
 # Root endpoint
