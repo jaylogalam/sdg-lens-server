@@ -5,7 +5,7 @@ def read_item(table: str) -> list[dict]:
     return response.data
 
 def create_item(table: str, data: dict) -> None:
-    response = db.table("planets").insert(data).execute()
+    response = db.table(table).insert(data).execute()
 
 def update_item(table: str, id: str, column: str) -> None:
     ...
