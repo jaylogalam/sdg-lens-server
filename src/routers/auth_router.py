@@ -17,12 +17,8 @@ def signup(request: SignupModel):
 
 @router.get("/test")
 def test(req: SignupModel):
-    
-
     # Add user to database
     AuthServices.Signup.with_password(
         email=req.email,
         password=req.password
     )
-    
-    return test

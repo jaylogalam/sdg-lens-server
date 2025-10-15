@@ -1,10 +1,19 @@
-from database import db
+from database import SupabaseClient
+
+_auth = SupabaseClient.get_client().auth
 
 class AuthServices:
     class Signup:
-        @staticmethod
-        def with_password(email: str, password: str):
-            db.auth.sign_up({"email": email, "password": password})
+        @classmethod
+        def with_password(cls, email: str, password: str):
+            _auth.sign_up({"email": email, "password": password})
 
     class Login:
         ...
+
+    class Utils:
+        ...        
+        # @classmethod
+        # def check_email_exists(cls, email: str) -> bool:
+        #     user = cls.auth.
+        #     return user
