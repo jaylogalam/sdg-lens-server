@@ -14,5 +14,5 @@ register_router():
 from fastapi import FastAPI
 
 def register_router(app: FastAPI) -> None:
-    from .auth import router as signup_router
+    from .auth_router import router as signup_router
     app.include_router(signup_router)

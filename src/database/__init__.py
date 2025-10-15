@@ -1,1 +1,1 @@
-from .supabase import client as db
+from .supabase import DatabaseClient
