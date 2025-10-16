@@ -23,3 +23,16 @@ def test(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depend
         
     except Exception as e:
         return {"error": str(e)}
+
+@router.post("/login")
+@limiter.limit("1/second") # type: ignore
+def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depends(get_db)]):
+    try:
+        return AuthServices.Login.with_password(
+            db=db,
+            email=creds.email,
+            password=creds.password
+        )
+        
+    except Exception:
+        return {"error": "Incorrect password"}
