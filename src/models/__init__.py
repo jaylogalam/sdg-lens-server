@@ -1,1 +1,1 @@
-from .auth_models import SignupModel
+from .auth_models import AuthModel
