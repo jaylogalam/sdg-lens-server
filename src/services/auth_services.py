@@ -5,8 +5,8 @@ from models import AuthModel
 
 class AuthServices:
     class Signup:
-        @classmethod
-        def with_password(cls, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+        @staticmethod
+        def with_password(creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
             db.auth.sign_up({
                 "email": creds.email,
                 "password": creds.password
