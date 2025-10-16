@@ -1,7 +1,7 @@
 from supabase import create_client, Client
 
 SUPABASE_URL = "https://duxqgefxnyrnlymsauso.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1eHFnZWZ4bnlybmx5bXNhdXNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5NDAxMzAsImV4cCI6MjA3NDUxNjEzMH0.KpKohNP5fOlcGeC2s2rdArCmsTcZHb9CaX7ez-3Eh0A"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1eHFnZWZ4bnlybmx5bXNhdXNvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODk0MDEzMCwiZXhwIjoyMDc0NTE2MTMwfQ.QuP7Da1N6oi0D7ZoRMAASkJ8Z24NfZjsmCAlHj5OxqQ"
 
 def get_db() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
