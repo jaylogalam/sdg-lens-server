@@ -12,7 +12,7 @@ router = APIRouter(
     
 @router.post("/signup")
 @limiter.limit("1/second") # type: ignore
-def test(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
     try:
         return AuthServices.Signup.with_password(
             db=db,
