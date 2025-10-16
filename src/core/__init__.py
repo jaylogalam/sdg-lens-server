@@ -1,1 +1,1 @@
-from .router import register_router
+from .limiter import limiter
