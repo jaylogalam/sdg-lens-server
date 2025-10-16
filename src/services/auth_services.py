@@ -1,6 +1,13 @@
 from supabase import Client
+from fastapi.responses import RedirectResponse
 
 class AuthServices:
+    class User:
+        
+        @staticmethod
+        def get_current_user(db: Client):
+            ...
+            
     class Signup:
         @staticmethod
         def with_password(db: Client, username: str, email: str, password: str):
@@ -15,12 +22,12 @@ class AuthServices:
                 "email": email,
                 "password": password
             })
+            if response.user is None:
+                raise ValueError("Failed to create user")
 
             # Initialize user profile
             user = response.user
-            if not user:
-                raise Exception("Signup failed: No user returned")
-
+            
             db.table("profiles").insert({
                 "id": user.id,
                 "username": username,
@@ -33,10 +40,16 @@ class AuthServices:
             if not AuthServices.Utils.check_email_exists(db, email):
                 raise ValueError("Email does not exist")
             
-            db.auth.sign_in_with_password({
+            auth_response = db.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
+            if auth_response.user is None:
+                raise ValueError("Incorrect password")
+
+            access_token = auth_response.session.access_token
+            response = RedirectResponse(url="/", status_code=303)
+            response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
 
     class Logout:
         @staticmethod
