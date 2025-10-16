@@ -1,7 +1,7 @@
-from database import SupabaseClient
-_db = SupabaseClient.get_client().from_("profiles")
+from supabase import Client
+from models import ProfileModel
 
 class ProfileServices:
-    ...
-    # @classmethod
-    # def init_profile()
+    @staticmethod
+    def initialize_profile(user: ProfileModel, db: Client):
+        ...
