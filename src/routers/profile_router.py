@@ -12,7 +12,6 @@ router = APIRouter(
 @router.get("/")
 def get_profile(request: Request, db: Annotated[Client, Depends(get_db)]):
     try:
-        AuthServices.Login.with_password(db=db, email="jaylogalam@gmail.com", password="123456")
         response = ProfileServices.get_profile(db=db, user_id="some_user_id")
         return response
         

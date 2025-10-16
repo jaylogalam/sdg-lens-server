@@ -24,15 +24,17 @@ def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depe
     except Exception as e:
         return {"error": str(e)}
 
-@router.post("/login")
+@router.get("/login")
 @limiter.limit("1/second") # type: ignore
 def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depends(get_db)]):
     try:
-        return AuthServices.Login.with_password(
+        auth_response = AuthServices.Login.with_password(
             db=db,
             email=creds.email,
             password=creds.password
         )
+        return auth_response.session.access_token
+        
         
     except Exception:
         return {"error": "Incorrect password"}
@@ -43,6 +45,15 @@ def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
     try:
         AuthServices.Logout()
         return {"message": "Successfully logged out"}
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/user")
+def get_current_user(request: Request, db: Annotated[Client, Depends(get_db)]):
+    try:
+        user = AuthServices.User.get_user(db)
+        return user
         
     except Exception as e:
         return {"error": str(e)}
