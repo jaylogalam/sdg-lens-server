@@ -1,1 +1,1 @@
-from ._core import SupabaseClient
+from .core import get_db
