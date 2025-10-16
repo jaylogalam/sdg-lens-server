@@ -16,3 +16,6 @@ from fastapi import FastAPI
 def register_router(app: FastAPI) -> None:
     from .auth_router import router as auth_router
     app.include_router(auth_router)
+
+    from .profile_router import router as profile_router
+    app.include_router(profile_router)
