@@ -1,6 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 class AuthModel:
+    class InitProfile(BaseModel):
+        id: str
+        created_at: datetime
+        username: str
+        
     class Signup(BaseModel):
-        email: str
+        username: str
+        email: EmailStr
         password: str
