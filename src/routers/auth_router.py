@@ -36,3 +36,13 @@ def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depend
         
     except Exception:
         return {"error": "Incorrect password"}
+
+@router.post("/logout")
+@limiter.limit("1/second") # type: ignore
+def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
+    try:
+        AuthServices.Logout()
+        return {"message": "Successfully logged out"}
+        
+    except Exception as e:
+        return {"error": str(e)}

@@ -38,6 +38,11 @@ class AuthServices:
                 "password": password
             })
 
+    class Logout:
+        @staticmethod
+        def __call__(db: Client) -> None:
+            db.auth.sign_out()
+
     class Utils:
         @staticmethod
         def check_username_exists(db: Client, username: str) -> bool:
