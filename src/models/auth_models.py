@@ -6,6 +6,7 @@ class AuthModel:
         id: str
         created_at: datetime
         username: str
+        email: EmailStr
         
     class Signup(BaseModel):
         username: str

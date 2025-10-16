@@ -8,27 +8,19 @@ from services import AuthServices
 from models import AuthModel
 
 router = APIRouter(
-    prefix="/signup"
+    prefix="/auth"
 )
-
-@router.post("")
-@limiter.limit("1/second") # type: ignore
-def signup(request: Request, db: Annotated[Client, Depends(get_db)]):
-    creds: AuthModel.Signup = AuthModel.Signup.model_validate(request.json())
-    user = AuthServices.Signup.with_password(creds, db)
-    # ProfileServices.initialize_profile(user, db)
     
-    return user
-    
-@router.get("/test")
+@router.post("/signup")
 @limiter.limit("1/second") # type: ignore
 def test(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
     try:
-        AuthServices.Signup.with_password(creds, db)
-    except APIError as e:
-        if getattr(e, "code", None) == "23505":
-            return {"error": "Username already exists"}
+        return AuthServices.Signup.with_password(
+            db=db,
+            username=creds.username,
+            email=creds.email,
+            password=creds.password
+        )
         
+    except Exception as e:
         return {"error": str(e)}
-
-    # 23505
