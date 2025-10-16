@@ -1,4 +1,3 @@
-from postgrest.exceptions import APIError
 from fastapi import APIRouter, Request
 from typing import Annotated
 from fastapi.params import Depends
