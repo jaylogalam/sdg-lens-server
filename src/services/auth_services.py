@@ -1,12 +1,16 @@
-from database import SupabaseClient
-
-_auth = SupabaseClient.get_client().auth
+from typing import Annotated
+from fastapi.params import Depends
+from database import get_db, Client
+from models import AuthModel
 
 class AuthServices:
     class Signup:
         @classmethod
-        def with_password(cls, email: str, password: str):
-            _auth.sign_up({"email": email, "password": password})
+        def with_password(cls, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+            db.auth.sign_up({
+                "email": creds.email,
+                "password": creds.password
+            })
 
     class Login:
         ...

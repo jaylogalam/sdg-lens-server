@@ -1,24 +1,23 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from typing import Annotated
+from fastapi.params import Depends
+from database import get_db, Client
+from core import limiter
 from services import AuthServices
-from models import SignupModel
+from models import AuthModel
 
 router = APIRouter(
     prefix="/signup"
 )
 
-@router.post("/")
-def signup(request: SignupModel):
-    response = AuthServices.Signup.with_password(
-        email = request.email,
-        password = request.password
-    )
+@router.post("")
+@limiter.limit("1/second") # type: ignore
+def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+    AuthServices.Signup.with_password(creds, db)
+    return {"message": "User created successfully"}
     
-    return response
-
 @router.get("/test")
-def test(req: SignupModel):
-    # Add user to database
-    AuthServices.Signup.with_password(
-        email=req.email,
-        password=req.password
-    )
+@limiter.limit("1/second") # type: ignore
+def test(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+    AuthServices.Signup.with_password(creds, db)
+    return {"message": "User created successfully"}
