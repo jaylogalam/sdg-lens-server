@@ -10,8 +10,8 @@ security = HTTPBearer()
 class Middleware:
     @staticmethod
     def register(app: FastAPI):
-        app.add_middleware(CORSMiddleware, **CorsMiddleware.Settings)
-        app.middleware("http")(AuthMiddleware())
+        CorsMiddleware.register(app)
+        AuthMiddleware.register(app)
 
 class CorsMiddleware:
     Settings: dict[str, Any] = {
@@ -21,6 +21,10 @@ class CorsMiddleware:
         "allow_headers": ["*"],
         "expose_headers": ["Content-Disposition"], 
     }
+
+    @classmethod
+    def register(cls, app: FastAPI):
+        app.add_middleware(CORSMiddleware, **cls.Settings)
 
 class AuthMiddleware:
     @staticmethod
@@ -54,3 +58,8 @@ class AuthMiddleware:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
         except jwt.PyJWKError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+
+    @staticmethod
+    def register(app: FastAPI):
+        app.middleware("http")(AuthMiddleware())
+
