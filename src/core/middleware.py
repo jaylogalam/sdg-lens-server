@@ -1,12 +1,8 @@
 from fastapi import Request, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
-
-SUPABASE_JWT = os.getenv('SUPABASE_JWT')
+SUPABASE_JWT = "55S6HwNqDTgu0Gqj0tJqEb4fRepB8l7FcHP+M1UBe+SbBBRKCs+vx80IoD/bMljQD+Taz5hFWCUTAriqAUJzEQ=="
 security = HTTPBearer()
 
 class AuthMiddleware:
