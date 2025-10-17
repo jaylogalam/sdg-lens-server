@@ -11,7 +11,7 @@ class AuthMiddleware:
     async def __call__(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
         token = request.cookies.get('access_token')
         if token and token.startswith('Bearer '):
-            token = token[7:]  # Remove 'Bearer ' prefix
+            token = token[7:]
             request.headers.__dict__['_list'].append(
                 (b"authorization", f"Bearer {token}".encode())
             )
@@ -24,7 +24,7 @@ class AuthMiddleware:
         try:
             token = creds.credentials
             if token.startswith('Bearer '):
-                token = token[7:]  # Remove 'Bearer ' prefix
+                token = token[7:]
             payload = jwt.decode(token, SUPABASE_JWT, algorithms=["HS256"], options={"verify_aud": False})
             user_id = payload.get("sub")
             if user_id is None:
