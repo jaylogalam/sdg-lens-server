@@ -1,2 +1,2 @@
 from supabase import Client
-from .core import get_db
+from .supabase import get_db

@@ -1,9 +1,9 @@
 from fastapi import Request, Response, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Callable, Awaitable
+from core import Secrets
 import jwt
 
-SUPABASE_JWT = "55S6HwNqDTgu0Gqj0tJqEb4fRepB8l7FcHP+M1UBe+SbBBRKCs+vx80IoD/bMljQD+Taz5hFWCUTAriqAUJzEQ=="
 security = HTTPBearer()
 
 class AuthMiddleware:
@@ -22,6 +22,10 @@ class AuthMiddleware:
     @staticmethod
     def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         try:
+            SUPABASE_JWT = Secrets.SUPABASE_JWT
+            if not SUPABASE_JWT:
+                raise ValueError("Missing JWT credentials in environment variables")
+            
             token = creds.credentials
             if token.startswith('Bearer '):
                 token = token[7:]

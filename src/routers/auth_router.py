@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from typing import Annotated, Any
 from fastapi.params import Depends
 from database import get_db, Client
-from core import limiter
+from core import AuthMiddleware, limiter
 from services import AuthServices
 from models import AuthModel
 
@@ -48,7 +48,6 @@ def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
     except Exception as e:
         return {"error": str(e)}
 
-from core import AuthMiddleware
 @router.get("/user")
 def get_current_user(
     request: Request,
