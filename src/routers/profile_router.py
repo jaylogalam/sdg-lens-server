@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Request
-from fastapi.params import Depends
-from typing import Annotated
-from database import get_db, Client
+from core import Dependencies
 from services import ProfileServices
-from services import AuthServices
 
 router = APIRouter(
     prefix="/profile"
 )
 
 @router.get("/")
-def get_profile(request: Request, db: Annotated[Client, Depends(get_db)]):
+def get_profile(request: Request, db: Dependencies.GetDB):
     try:
         response = ProfileServices.get_profile(db=db, user_id="some_user_id")
         return response

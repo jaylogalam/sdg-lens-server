@@ -40,17 +40,22 @@ class AuthServices:
             })
             if auth_response.user is None:
                 raise ValueError("Incorrect password")
+
+            if not auth_response.session or not auth_response.session.access_token:
+                raise ValueError("No access token returned")
             
             access_token = auth_response.session.access_token
-            response = RedirectResponse('/', status_code=303)
+            response = RedirectResponse('', status_code=303)
             response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
             return response
 
     class Logout:
         @staticmethod
-        async def __call__(db: Client) -> None:
-            response = RedirectResponse('login', status_code=303)
+        def logout(db: Client):
+            db.auth.sign_out()
+            response = RedirectResponse('', status_code=303)
             response.delete_cookie(key='access_token')
+            
             return response
 
     class Utils:
