@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from typing import Annotated
+from typing import Annotated, Any
 from fastapi.params import Depends
 from database import get_db, Client
 from core import limiter
@@ -24,7 +24,7 @@ def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depe
     except Exception as e:
         return {"error": str(e)}
 
-@router.get("/login")
+@router.post("/login")
 @limiter.limit("1/second") # type: ignore
 def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depends(get_db)]):
     try:
@@ -33,26 +33,30 @@ def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depend
             email=creds.email,
             password=creds.password
         )
-        return auth_response.session.access_token
-        
+
+        return auth_response
         
     except Exception:
         return {"error": "Incorrect password"}
 
-@router.post("/logout")
+@router.get("/logout")
 @limiter.limit("1/second") # type: ignore
 def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
     try:
-        AuthServices.Logout()
-        return {"message": "Successfully logged out"}
+        response = AuthServices.Logout.logout(db)
+        return response
         
     except Exception as e:
         return {"error": str(e)}
 
+from core import AuthMiddleware
 @router.get("/user")
-def get_current_user(request: Request, db: Annotated[Client, Depends(get_db)]):
+def get_current_user(
+    request: Request,
+    user: Annotated[dict[str, Any], Depends(AuthMiddleware.get_user)],
+    db: Annotated[Client, Depends(get_db)]
+):
     try:
-        user = AuthServices.User.get_user(db)
         return user
         
     except Exception as e:
