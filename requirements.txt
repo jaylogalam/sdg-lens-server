@@ -5,3 +5,4 @@ pydantic
 pydantic[email]
 slowapi
 requests
+pyjwt
