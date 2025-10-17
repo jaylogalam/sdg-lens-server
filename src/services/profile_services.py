@@ -3,7 +3,7 @@ from models import ProfileModel
 
 class ProfileServices:
     @staticmethod
-    def get_profile(db: Client, user_id: str):
+    def get_profile(db: Client,  user_id: str):
         session = db.auth.get_user()
         return session
         

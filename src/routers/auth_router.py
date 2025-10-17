@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Request
-from typing import Annotated, Any
-from fastapi.params import Depends
-from database import get_db, Client
-from core import AuthMiddleware, limiter
+from core import limiter, Dependencies
 from services import AuthServices
 from models import AuthModel
 
@@ -12,7 +9,7 @@ router = APIRouter(
     
 @router.post("/signup")
 @limiter.limit("1/second") # type: ignore
-def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depends(get_db)]):
+def signup(request: Request, creds: AuthModel.Signup, db: Dependencies.GetDB):
     try:
         return AuthServices.Signup.with_password(
             db=db,
@@ -26,7 +23,7 @@ def signup(request: Request, creds: AuthModel.Signup, db: Annotated[Client, Depe
 
 @router.post("/login")
 @limiter.limit("1/second") # type: ignore
-def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depends(get_db)]):
+def login(request: Request, creds: AuthModel.Login, db: Dependencies.GetDB):
     try:
         auth_response = AuthServices.Login.with_password(
             db=db,
@@ -41,7 +38,7 @@ def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depend
 
 @router.post("/logout")
 @limiter.limit("1/second") # type: ignore
-def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
+def logout(request: Request, db: Dependencies.GetDB):
     try:
         return AuthServices.Logout.logout(db)
         
@@ -49,11 +46,7 @@ def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
         return {"error": str(e)}
 
 @router.get("/user")
-def get_current_user(
-    request: Request,
-    user: Annotated[dict[str, Any], Depends(AuthMiddleware.get_user)],
-    db: Annotated[Client, Depends(get_db)]
-):
+def get_current_user(request: Request, user: Dependencies.GetUser, db: Dependencies.GetDB):
     try:
         return user
         
