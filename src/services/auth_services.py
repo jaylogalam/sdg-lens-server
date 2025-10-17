@@ -55,7 +55,8 @@ class AuthServices:
             db.auth.sign_out()
             response = RedirectResponse('', status_code=303)
             response.delete_cookie(key='access_token')
-            return "Logged out"
+            
+            return response
 
     class Utils:
         @staticmethod
