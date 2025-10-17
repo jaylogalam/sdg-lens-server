@@ -5,8 +5,5 @@ SUPABASE_URL = "https://duxqgefxnyrnlymsauso.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1eHFnZWZ4bnlybmx5bXNhdXNvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODk0MDEzMCwiZXhwIjoyMDc0NTE2MTMwfQ.QuP7Da1N6oi0D7ZoRMAASkJ8Z24NfZjsmCAlHj5OxqQ"
 
 def get_db(request: Request) -> Client:
-    db = create_client(SUPABASE_URL, SUPABASE_KEY)
-    token = request.cookies.get("sb-access-token")
-    if token:
-        db.auth.set_session(access_token=token, refresh_token=token)
-    return db
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    
