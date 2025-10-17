@@ -7,9 +7,13 @@ router = APIRouter(
 )
 
 @router.get("/")
-def get_profile(request: Request, db: Dependencies.GetDB):
+def get_profile(request: Request, user: Dependencies.GetUser, db: Dependencies.GetDB):
     try:
-        response = ProfileServices.get_profile(db=db, user_id="some_user_id")
+        id = user.get("sub")
+        if not id:
+            raise ValueError("No id")
+        response = ProfileServices.get_profile_data(db, id)
+        # return response
         return response
         
     except Exception as e:
