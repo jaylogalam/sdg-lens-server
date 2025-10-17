@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request
 from core import Dependencies
-from models import ProfileModel
 from services import ProfileServices
 
 router = APIRouter(
