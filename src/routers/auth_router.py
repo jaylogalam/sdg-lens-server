@@ -33,8 +33,8 @@ def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depend
             email=creds.email,
             password=creds.password
         )
-        return auth_response.session.access_token
-        
+
+        return auth_response
         
     except Exception:
         return {"error": "Incorrect password"}
@@ -43,8 +43,7 @@ def login(request: Request, creds: AuthModel.Login, db: Annotated[Client, Depend
 @limiter.limit("1/second") # type: ignore
 def logout(request: Request, db: Annotated[Client, Depends(get_db)]):
     try:
-        AuthServices.Logout()
-        return {"message": "Successfully logged out"}
+        return AuthServices.Logout()
         
     except Exception as e:
         return {"error": str(e)}
