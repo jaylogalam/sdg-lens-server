@@ -1,0 +1,35 @@
+from fastapi import Request, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
+
+JWT_SECRET_KEY = "55S6HwNqDTgu0Gqj0tJqEb4fRepB8l7FcHP+M1UBe+SbBBRKCs+vx80IoD/bMljQD+Taz5hFWCUTAriqAUJzEQ=="
+security = HTTPBearer()
+
+class AuthMiddleware:
+    @staticmethod
+    async def __call__(request: Request, call_next):
+        token = request.cookies.get('access_token')
+        if token and token.startswith('Bearer '):
+            token = token[7:]  # Remove 'Bearer ' prefix
+            request.headers.__dict__['list'].append(
+                (b"authorization", f"Bearer {token}".encode())
+            )
+
+        response = await call_next(request)
+        return response
+    
+    def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+        try:
+            token = creds.credentials
+            if token.startswith('Bearer '):
+                token = token[7:]  # Remove 'Bearer ' prefix
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"], options={"verify_aud": False})
+            user_id = payload.get("sub")
+            if user_id is None:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
+        except jwt.PyJWKError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+    

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+supabase
+pydantic
+pydantic[email]
+slowapi
+requests
+pyjwt
