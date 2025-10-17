@@ -1,8 +1,12 @@
 from fastapi import Request, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+from dotenv import load_dotenv
+import os
 
-JWT_SECRET_KEY = "55S6HwNqDTgu0Gqj0tJqEb4fRepB8l7FcHP+M1UBe+SbBBRKCs+vx80IoD/bMljQD+Taz5hFWCUTAriqAUJzEQ=="
+load_dotenv()
+
+SUPABASE_JWT = os.getenv('SUPABASE_JWT')
 security = HTTPBearer()
 
 class AuthMiddleware:
@@ -23,7 +27,7 @@ class AuthMiddleware:
             token = creds.credentials
             if token.startswith('Bearer '):
                 token = token[7:]  # Remove 'Bearer ' prefix
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"], options={"verify_aud": False})
+            payload = jwt.decode(token, SUPABASE_JWT, algorithms=["HS256"], options={"verify_aud": False})
             user_id = payload.get("sub")
             if user_id is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
