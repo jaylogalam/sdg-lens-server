@@ -1,10 +1,26 @@
-from fastapi import Request, Response, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Callable, Awaitable
+from fastapi.middleware.cors import CORSMiddleware
+from typing import Callable, Awaitable, Any
 from core import Secrets
 import jwt
 
 security = HTTPBearer()
+
+class Middleware:
+    @staticmethod
+    def register(app: FastAPI):
+        app.add_middleware(CORSMiddleware, **CorsMiddleware.Settings)
+        app.middleware("http")(AuthMiddleware())
+
+class CorsMiddleware:
+    Settings: dict[str, Any] = {
+        "allow_origins": [Secrets.CLIENT_URL], 
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+        "expose_headers": ["Content-Disposition"], 
+    }
 
 class AuthMiddleware:
     @staticmethod
@@ -38,4 +54,3 @@ class AuthMiddleware:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
         except jwt.PyJWKError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
-    
