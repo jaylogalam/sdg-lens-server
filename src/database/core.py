@@ -9,7 +9,3 @@ if not all([SUPABASE_URL, SUPABASE_KEY]):
 
 def get_db(request: Request) -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
-<<<<<<< HEAD
-    
-=======
->>>>>>> middleware
