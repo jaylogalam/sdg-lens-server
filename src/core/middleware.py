@@ -15,7 +15,7 @@ class Middleware:
 
 class CorsMiddleware:
     Settings: dict[str, Any] = {
-        "allow_origins": [Secrets.CLIENT_URL], 
+        "allow_origins": [Secrets.CLIENT_URL, "http://localhost:5173"], 
         "allow_credentials": True,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
