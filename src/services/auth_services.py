@@ -44,7 +44,13 @@ class AuthServices:
             
             access_token = auth_response.session.access_token
             response = JSONResponse("Login successful")
-            response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+            response.set_cookie(
+                key="access_token",
+                value=f"Bearer {access_token}",
+                httponly=True,
+                secure=True,
+                samesite='none'
+            )
             return response
 
     class Logout:
