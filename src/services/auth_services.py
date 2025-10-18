@@ -1,5 +1,5 @@
 from supabase import Client
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse
 
 class AuthServices:
     class Signup:
@@ -38,14 +38,12 @@ class AuthServices:
                 "email": email,
                 "password": password
             })
-            if auth_response.user is None:
-                raise ValueError("Incorrect password")
 
             if not auth_response.session or not auth_response.session.access_token:
                 raise ValueError("No access token returned")
             
             access_token = auth_response.session.access_token
-            response = RedirectResponse('', status_code=303)
+            response = JSONResponse("Login successful")
             response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
             return response
 
@@ -53,7 +51,7 @@ class AuthServices:
         @staticmethod
         def logout(db: Client):
             db.auth.sign_out()
-            response = RedirectResponse('', status_code=303)
+            response = JSONResponse("Logout successful")
             response.delete_cookie(key='access_token')
             
             return response

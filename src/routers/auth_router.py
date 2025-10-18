@@ -33,8 +33,8 @@ def login(request: Request, creds: AuthModel.Login, db: Dependencies.GetDB):
 
         return auth_response
         
-    except Exception:
-        return {"error": "Incorrect password"}
+    except Exception as e:
+        return {"error": str(e)}
 
 @router.post("/logout")
 @limiter.limit("1/second") # type: ignore
