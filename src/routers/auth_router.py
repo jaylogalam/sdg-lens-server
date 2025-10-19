@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from core.dependencies import GetDB, GetUser
-from core import limiter
-from services import AuthServices
+from core.limiter import limiter
+from services.auth_services import AuthServices
 from models import AuthModel
 
 router = APIRouter(

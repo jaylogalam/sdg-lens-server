@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from core.dependencies import GetUser, GetDB
-from services import ProfileServices
+from services.profile_services import ProfileServices
 
 router = APIRouter(
     prefix="/profile"

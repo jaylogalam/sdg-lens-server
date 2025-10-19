@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from core.dependencies import GetClassifier, GetUser
-from core import limiter
-from services import AnalyzeServices
+from core.limiter import limiter
+from services.analyze_services import AnalyzeServices
 from models import AnalyzeModel
 
 router = APIRouter(
