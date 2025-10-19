@@ -14,7 +14,8 @@ register_router():
 from fastapi import FastAPI
 from routers import (
     auth_router,
-    profile_router
+    profile_router,
+    analyze_router
 )
 
 class Routers:
@@ -22,3 +23,4 @@ class Routers:
     def register(app: FastAPI) -> None:
         app.include_router(auth_router)
         app.include_router(profile_router)
+        app.include_router(analyze_router)
