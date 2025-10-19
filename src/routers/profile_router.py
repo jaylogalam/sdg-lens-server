@@ -20,7 +20,7 @@ def get_profile(request: Request, user: GetUser, db: GetDB):
         return {"error": str(e)}
 
 @router.get("/admin")
-def get_all_profiles(request: Request, user: Dependencies.GetUser, db: Dependencies.GetDB):
+def get_all_profiles(request: Request, user: GetUser, db: GetDB):
     try:
         id = user.get("sub")
         if not id:
