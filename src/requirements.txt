@@ -9,6 +9,5 @@ pyjwt
 python-dotenv
 transformers
 torch
-tensorflow
 tf-keras
 huggingface_hub[hf_xet]
