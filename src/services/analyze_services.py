@@ -24,7 +24,11 @@ class AnalyzeServices:
     ]
     
     @classmethod
-    def analyze_text(cls, classifier: ZeroShotClassificationPipeline, text_input: str):
+    def analyze_text(
+        cls,
+        classifier: ZeroShotClassificationPipeline,
+        text_input: str
+    ):
         results = classifier( # type: ignore
             text_input, 
             candidate_labels=cls.labels, 

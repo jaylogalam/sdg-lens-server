@@ -12,7 +12,8 @@ router = APIRouter(
 def analyze_text(
     request: Request,
     text: AnalyzeModel.Text,
-    classifier: Dependencies.GetClassifier
+    classifier: Dependencies.GetClassifier,
+    user: Dependencies.GetUser
 ):
     try:
         return AnalyzeServices.analyze_text(
