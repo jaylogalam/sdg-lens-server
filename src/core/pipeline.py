@@ -10,7 +10,7 @@ class Pipeline:
         # The return type of this function is explicitly Pipeline
         classifier = pipeline(
             "zero-shot-classification", 
-            model="facebook/bart-large-mnli",
+            model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0",
             token=None
         )
         
