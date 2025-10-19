@@ -13,7 +13,7 @@ class Pipeline:
         if classifier_model is None:
             classifier_model = pipeline(
                 "zero-shot-classification", 
-                model="MoritzLaurer/deberta-v3-base-zeroshot-v2.0",
+                model="MoritzLaurer/xtremedistil-l6-h256-zeroshot-v1.1-all-33",
                 token=None
             )
             print("Model loading complete.")
