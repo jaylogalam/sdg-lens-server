@@ -8,5 +8,5 @@ requests
 pyjwt
 python-dotenv
 transformers
-torch
-huggingface_hub[hf_xet]
+torch==2.3.1+cpu
+huggingface_hub
