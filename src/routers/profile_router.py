@@ -18,4 +18,17 @@ def get_profile(request: Request, user: Dependencies.GetUser, db: Dependencies.G
         
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/admin")
+def get_all_profiles(request: Request, user: Dependencies.GetUser, db: Dependencies.GetDB):
+    try:
+        id = user.get("sub")
+        if not id:
+            raise ValueError("No id")
+
+        response = ProfileServices.get_profile_data_admin(db, id)
+        return response
+
+    except Exception as e:
+        return {"error": str(e)}
     
