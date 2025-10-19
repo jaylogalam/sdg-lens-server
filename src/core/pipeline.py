@@ -2,6 +2,7 @@ from transformers import pipeline, ZeroShotClassificationPipeline
 from functools import lru_cache
 
 class Pipeline:
+    @staticmethod
     @lru_cache(maxsize=1)
     def get_classifier() -> ZeroShotClassificationPipeline:
         """Initializes and caches the heavy zero-shot classification model."""
