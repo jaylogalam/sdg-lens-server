@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Response, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Callable, Awaitable, Any
-from core import Secrets
+from core.secrets import CLIENT_URL, SUPABASE_JWT
 import jwt
 
 security = HTTPBearer()
@@ -15,7 +15,7 @@ class Middleware:
 
 class CorsMiddleware:
     _origins: list[Any] = [
-        Secrets.CLIENT_URL,
+        CLIENT_URL,
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:8000"
@@ -49,14 +49,14 @@ class AuthMiddleware:
     @staticmethod
     def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         try:
-            SUPABASE_JWT = Secrets.SUPABASE_JWT
-            if not SUPABASE_JWT:
+            JWT = SUPABASE_JWT
+            if not JWT:
                 raise ValueError("Missing JWT credentials in environment variables")
             
             token = creds.credentials
             if token.startswith('Bearer '):
                 token = token[7:]
-            payload = jwt.decode(token, SUPABASE_JWT, algorithms=["HS256"], options={"verify_aud": False})
+            payload = jwt.decode(token, JWT, algorithms=["HS256"], options={"verify_aud": False})
             user_id = payload.get("sub")
             if user_id is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
