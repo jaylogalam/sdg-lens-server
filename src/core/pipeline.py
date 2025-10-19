@@ -1,17 +1,30 @@
-from transformers import pipeline, ZeroShotClassificationPipeline
-from functools import lru_cache
+from transformers import pipeline
+
+classifier_model = None 
 
 class Pipeline:
     @staticmethod
-    @lru_cache(maxsize=1)
-    def get_classifier() -> ZeroShotClassificationPipeline:
-        """Initializes and caches the heavy zero-shot classification model."""
-        print("Loading zero-shot classification model... (This runs only once)")
-        # The return type of this function is explicitly Pipeline
-        classifier = pipeline(
-            "zero-shot-classification", 
-            model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0",
-            token=None
-        )
+    async def load_classifier_model():
+        """Initializes the heavy model globally."""
+        print("Explicitly loading zero-shot classification model ONCE via startup event...")
+        global classifier_model
         
-        return classifier
+        # Check if the model is already loaded (useful if this function is called multiple times by accident)
+        if classifier_model is None:
+            classifier_model = pipeline(
+                "zero-shot-classification", 
+                model="MoritzLaurer/deberta-v3-base-zeroshot-v2.0",
+                token=None
+            )
+            print("Model loading complete.")
+        else:
+            print("Model already loaded.")
+    
+    @staticmethod
+    def get_classifier():
+        global classifier_model
+        
+        if classifier_model is None:
+            raise RuntimeError("Classifier model not yet loaded via startup event.")
+        
+        return classifier_model
