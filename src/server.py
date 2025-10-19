@@ -1,9 +1,12 @@
 # This is the main entry point of the FastAPI server.
 from fastapi import FastAPI
+from core.events import Startup
 from core.middleware import Middleware
 from core.routers import Routers
 
 app = FastAPI()
+
+Startup.register(app)
 
 # Register middlewares
 Middleware.register(app)
