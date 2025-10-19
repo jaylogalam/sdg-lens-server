@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from core import Dependencies
+from core.dependencies import GetUser, GetDB
 from services import ProfileServices
 
 router = APIRouter(
@@ -7,7 +7,7 @@ router = APIRouter(
 )
 
 @router.get("/")
-def get_profile(request: Request, user: Dependencies.GetUser, db: Dependencies.GetDB):
+def get_profile(request: Request, user: GetUser, db: GetDB):
     try:
         id = user.get("sub")
         if not id:

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
-from core import limiter, Dependencies
+from core.dependencies import GetClassifier, GetUser
+from core import limiter
 from services import AnalyzeServices
 from models import AnalyzeModel
 
@@ -12,8 +13,8 @@ router = APIRouter(
 def analyze_text(
     request: Request,
     text: AnalyzeModel.Text,
-    classifier: Dependencies.GetClassifier,
-    user: Dependencies.GetUser
+    classifier: GetClassifier,
+    user: GetUser
 ):
     try:
         return AnalyzeServices.analyze_text(
