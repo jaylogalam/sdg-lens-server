@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Response, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Callable, Awaitable, Any
-from core.secrets import CLIENT_URL, SUPABASE_JWT
+from core.secrets import CLIENT_URL
 from core.database import Database
 
 security = HTTPBearer()
@@ -36,9 +36,8 @@ class CorsMiddleware:
 class AuthMiddleware:
     @staticmethod
     async def __call__(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
-        print(f"Running middleware...\n")
+        print(f"Running middleware...")
         token = request.cookies.get('access_token')
-        print(f"Login access token: {token}\n")
         
         if token and token.startswith('Bearer '):
             token = token[7:]
@@ -53,22 +52,16 @@ class AuthMiddleware:
     @staticmethod
     def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         try:
-            print("Retrieving user...\n")
+            print("Retrieving user...")
             token = creds.credentials
-            print(f"Get user access token: {token}\n")
 
             db = Database.get_db()
             
-            print("Retrieving user claims...\n")
-            user = db.auth.get_claims(SUPABASE_JWT)
-            if not user:
+            data = db.auth.get_user(token)
+            if not data:
                 raise Exception("Cannot retrieve user!\n")
 
-            print("Retrieving user id...\n")
-            user_id = user.get("sub")
-            
-            print("Successfully retrieved user\n")
-            return user_id
+            return data.user.id
         
         except Exception as e:
             raise Exception(f"Error getting user: {e}")
