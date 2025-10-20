@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from core.dependencies import GetDB, GetUser
+from core.dependencies import GetDBAdmin, GetUser
 from core.limiter import limiter
 from services.auth_services import AuthServices
 from models import AuthModel
@@ -10,7 +10,7 @@ router = APIRouter(
     
 @router.post("/signup")
 @limiter.limit("1/second") # type: ignore
-def signup(request: Request, creds: AuthModel.Signup, db: GetDB):
+def signup(request: Request, creds: AuthModel.Signup, db: GetDBAdmin):
     try:
         return AuthServices.Signup.with_password(
             db=db,
@@ -24,7 +24,7 @@ def signup(request: Request, creds: AuthModel.Signup, db: GetDB):
 
 @router.post("/login")
 @limiter.limit("1/second") # type: ignore
-def login(request: Request, creds: AuthModel.Login, db: GetDB):
+def login(request: Request, creds: AuthModel.Login, db: GetDBAdmin):
     try:
         auth_response = AuthServices.Login.with_password(
             db=db,
@@ -39,7 +39,7 @@ def login(request: Request, creds: AuthModel.Login, db: GetDB):
 
 @router.post("/logout")
 @limiter.limit("1/second") # type: ignore
-def logout(request: Request, db: GetDB):
+def logout(request: Request, db: GetDBAdmin):
     try:
         return AuthServices.Logout.logout(db)
         
@@ -47,9 +47,10 @@ def logout(request: Request, db: GetDB):
         return {"error": str(e)}
 
 @router.get("/user")
-def get_current_user(request: Request, user: GetUser, db: GetDB):
+def get_current_user(request: Request, user: GetUser, db: GetDBAdmin):
     try:
-        return user
+        response = user
+        return response
         
     except Exception as e:
         return {"error": str(e)}
