@@ -7,6 +7,3 @@ slowapi
 requests
 pyjwt
 python-dotenv
-transformers
-torch==2.6.0
-huggingface_hub
