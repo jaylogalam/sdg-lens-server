@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from core.dependencies import GetClassifier, GetUser
+from core.dependencies import GetUser
 from core.limiter import limiter
 from services.analyze_services import AnalyzeServices
 from models import AnalyzeModel
@@ -13,14 +13,10 @@ router = APIRouter(
 def analyze_text(
     request: Request,
     text: AnalyzeModel.Text,
-    classifier: GetClassifier,
     user: GetUser
 ):
     try:
-        return AnalyzeServices.analyze_text(
-            text_input=text.text,
-            classifier=classifier
-        )
+        return AnalyzeServices.analyze_text(text.text)
         
     except Exception as e:
         return {"error": str(e)}
