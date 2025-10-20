@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from core.dependencies import GetUser, GetDB
+from core.dependencies import GetUser, GetDBAdmin
 from services.profile_services import ProfileServices
 
 router = APIRouter(
@@ -7,27 +7,18 @@ router = APIRouter(
 )
 
 @router.get("/")
-def get_profile(request: Request, user: GetUser, db: GetDB):
+def get_profile(request: Request, user: GetUser, db: GetDBAdmin):
     try:
-        return user
-        id = user.get("sub")
-        if not id:
-            raise ValueError("No id")
-        response = ProfileServices.get_profile_data(db, id)
-        # return response
+        response = ProfileServices.get_profile_data(db, user.id)
         return response
         
     except Exception as e:
         return {"error": str(e)}
 
 @router.get("/admin")
-def get_all_profiles(request: Request, user: GetUser, db: GetDB):
+def get_all_profiles(request: Request, user: GetUser, db: GetDBAdmin):
     try:
-        id = user.get("sub")
-        if not id:
-            raise ValueError("No id")
-
-        response = ProfileServices.get_profile_data_admin(db, id)
+        response = ProfileServices.get_profile_data_admin(db, user.id)
         return response
 
     except Exception as e:

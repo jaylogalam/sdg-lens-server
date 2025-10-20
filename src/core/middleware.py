@@ -57,11 +57,11 @@ class AuthMiddleware:
 
             db = Database.get_db()
             
-            data = db.auth.get_user(token)
-            if not data:
+            user = db.auth.get_user(token)
+            if not user:
                 raise Exception("Cannot retrieve user!\n")
 
-            return data.user.id
+            return user.user
         
         except Exception as e:
             raise Exception(f"Error getting user: {e}")
