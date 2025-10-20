@@ -5,11 +5,11 @@ class AuthServices:
     class Signup:
         @staticmethod
         def with_password(db: Client, username: str, email: str, password: str):
-            # if AuthServices.Utils.check_username_exists(db, username):
-            #     raise ValueError("Username already exists")
+            if AuthServices.Utils.check_username_exists(db, username):
+                raise ValueError("Username already exists")
             
-            # if AuthServices.Utils.check_email_exists(db, email):
-            #     raise ValueError("Email already exists")
+            if AuthServices.Utils.check_email_exists(db, email):
+                raise ValueError("Email already exists")
             
             # Sign up the user
             auth_response = db.auth.sign_up({
