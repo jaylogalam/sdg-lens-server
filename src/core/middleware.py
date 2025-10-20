@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Response, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Callable, Awaitable, Any
 from core.secrets import CLIENT_URL, SUPABASE_JWT
-import jwt
+from core.database import Database
 
 security = HTTPBearer()
 
@@ -36,7 +36,10 @@ class CorsMiddleware:
 class AuthMiddleware:
     @staticmethod
     async def __call__(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
+        print(f"Running middleware...\n")
         token = request.cookies.get('access_token')
+        print(f"Login access token: {token}\n")
+        
         if token and token.startswith('Bearer '):
             token = token[7:]
             request.headers.__dict__['_list'].append(
@@ -44,27 +47,31 @@ class AuthMiddleware:
             )
 
         response = await call_next(request)
+        print("Success!")
         return response
 
     @staticmethod
     def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         try:
-            JWT = SUPABASE_JWT
-            if not JWT:
-                raise ValueError("Missing JWT credentials in environment variables")
-            
+            print("Retrieving user...\n")
             token = creds.credentials
-            if token.startswith('Bearer '):
-                token = token[7:]
-            payload = jwt.decode(token, JWT, algorithms=["HS256"], options={"verify_aud": False})
-            user_id = payload.get("sub")
-            if user_id is None:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
-            return payload
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth creds")
-        except jwt.PyJWKError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+            print(f"Get user access token: {token}\n")
+
+            db = Database.get_db()
+            
+            print("Retrieving user claims...\n")
+            user = db.auth.get_claims(SUPABASE_JWT)
+            if not user:
+                raise Exception("Cannot retrieve user!\n")
+
+            print("Retrieving user id...\n")
+            user_id = user.get("sub")
+            
+            print("Successfully retrieved user\n")
+            return user_id
+        
+        except Exception as e:
+            raise Exception(f"Error getting user: {e}")
 
     @staticmethod
     def register(app: FastAPI):

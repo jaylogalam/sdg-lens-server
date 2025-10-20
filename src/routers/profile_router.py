@@ -9,6 +9,7 @@ router = APIRouter(
 @router.get("/")
 def get_profile(request: Request, user: GetUser, db: GetDB):
     try:
+        return user
         id = user.get("sub")
         if not id:
             raise ValueError("No id")
