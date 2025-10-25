@@ -46,7 +46,6 @@ class AuthMiddleware:
             )
 
         response = await call_next(request)
-        print("Success!")
         return response
 
     @staticmethod
