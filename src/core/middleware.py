@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Request, Response, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, Request
+from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Callable, Awaitable, Any
+from typing import Any
 from core.secrets import CLIENT_URL
-from core.database import Database
 
 security = HTTPBearer()
 
@@ -11,7 +10,6 @@ class Middleware:
     @staticmethod
     def register(app: FastAPI):
         CorsMiddleware.register(app)
-        AuthMiddleware.register(app)
 
 class CorsMiddleware:
     _origins: list[Any] = [
@@ -35,37 +33,17 @@ class CorsMiddleware:
 
 class AuthMiddleware:
     @staticmethod
-    async def __call__(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
-        print(f"Running middleware...")
-        token = request.cookies.get('access_token')
-        
-        if token and token.startswith('Bearer '):
-            token = token[7:]
-            request.headers.__dict__['_list'].append(
-                (b"authorization", f"Bearer {token}".encode())
-            )
-
-        response = await call_next(request)
-        return response
-
-    @staticmethod
-    def get_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+    def get_token(request: Request):
         try:
-            print("Retrieving user...")
-            token = creds.credentials
+            token = request.cookies.get("access_token")
 
-            db = Database.get_db()
-            
-            user = db.auth.get_user(token)
-            if not user:
-                raise Exception("Cannot retrieve user!\n")
+            if token and token.startswith('Bearer '):
+                token = token[7:]
 
-            return user.user
+            if not token:
+                return ""
+
+            return token
         
         except Exception as e:
             raise Exception(f"Error getting user: {e}")
-
-    @staticmethod
-    def register(app: FastAPI):
-        app.middleware("http")(AuthMiddleware())
-
