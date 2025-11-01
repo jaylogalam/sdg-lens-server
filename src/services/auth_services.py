@@ -1,5 +1,6 @@
 from supabase import Client
 from fastapi.responses import JSONResponse
+import re
 
 class AuthServices:
     class Signup:
@@ -95,3 +96,15 @@ class AuthServices:
             data = getattr(results, "data", None)
             return bool(data and len(data) > 0)
         
+        @staticmethod
+        def validate_password_strength(password: str):
+            if len(password) < 8:
+                raise ValueError("Password too short")
+            if not re.search(r"[A-Z]", password):
+                raise ValueError("Password must contain an uppercase letter")
+            if not re.search(r"[a-z]", password):
+                raise ValueError("Password must contain a lowercase letter")
+            if not re.search(r"[0-9]", password):
+                raise ValueError("Password must contain a number")
+            if not re.search(r"[@$!%*?&]", password):
+                raise ValueError("Password must contain a special character")
