@@ -2,8 +2,6 @@ from core.secrets import PIPELINE_URL, PIPELINE_KEY
 from typing import Any
 import requests
 
-if not PIPELINE_URL or not PIPELINE_KEY:
-    raise ValueError("")
 
 headers = {
     "Authorization": f"Bearer {PIPELINE_KEY}",

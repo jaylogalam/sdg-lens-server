@@ -1,20 +1,21 @@
 from fastapi import APIRouter, Request
 from core.limiter import limiter
 from services.analyze_services import AnalyzeServices
-from models import AnalyzeModel
+from models.analyze_models import AnalyzeModel
 
 router = APIRouter(
-    prefix="/analyze"
+    prefix="/analyze",
+    tags=["Analyze"]
 )
-    
-@router.get("")
-@limiter.limit("1/second") # type: ignore
-def analyze_text(
-    request: Request,
-    text: AnalyzeModel.Text,
-):
-    try:
-        return AnalyzeServices.analyze_text(text.text)
-        
-    except Exception as e:
-        return {"error": str(e)}
+
+@router.post("/")
+@limiter.limit("1/second")
+def analyze_text(request: Request, payload: AnalyzeModel):
+    """
+    Analyze text locally (no external AI).
+    """
+    result = AnalyzeServices.analyze_text(payload.text)
+    return {
+        "message": "Text analyzed successfully",
+        "data": result
+    }
