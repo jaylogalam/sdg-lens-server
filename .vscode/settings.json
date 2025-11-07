@@ -8,9 +8,9 @@
 
         "**/__pycache__": true,
         "**/.gitignore": true,
-        "**/README.md": true,
+        // "**/README.md": true,
         "**/requirements.txt": true,
-        ".venv": true
+        // ".venv": true
         
 
 

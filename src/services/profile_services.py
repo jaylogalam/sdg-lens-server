@@ -1,4 +1,5 @@
 from supabase import Client
+from services.auth_services import AuthServices
 
 class ProfileServices:
     @staticmethod
@@ -12,13 +13,13 @@ class ProfileServices:
         return results
 
     @staticmethod
-    def get_profile_data_admin(db: Client):
-        user = db.table("profiles").select("role").limit(1).execute()
-        role = user.data[0]['role'] # type: ignore
+    def edit_username(db: Client, admin: Client, name: str):
+        previous = db.table("profiles").select("username").execute()
+        previous = getattr(previous, "data", None)
+        previous = previous[0]['username']
 
-        if not role or role != 'admin':
-            raise ValueError("Requires admin")
-
-        response = db.table("profiles").select("*").execute()
-
-        return response
+        if AuthServices.Utils.check_username_exists(admin, previous):
+            raise ValueError("Username already exists")
+        
+        response = db.table("profiles").update({"username": name}).eq("username", previous).execute()
+        return "Success"
