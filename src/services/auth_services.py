@@ -54,8 +54,12 @@ class AuthServices:
             if not auth_response.session or not auth_response.session.access_token:
                 raise ValueError("No access token returned")
             
+            role = AuthServices.Utils.get_role(db)
+            role = getattr(role, "data", None)
+            role = role[0]['role']
+            
             access_token = auth_response.session.access_token
-            response = JSONResponse("Login successful")
+            response = JSONResponse({"role": role, "message": "Login successful"})
             response.set_cookie(
                 key="access_token",
                 path="/",
@@ -95,6 +99,11 @@ class AuthServices:
             results = admin.table("profiles").select("id").eq("email", email).limit(1).execute()
             data = getattr(results, "data", None)
             return bool(data and len(data) > 0)
+        
+        @staticmethod
+        def get_role(db: Client):
+            results = db.table("profiles").select("role").limit(1).execute()
+            return results
         
         @staticmethod
         def validate_password_strength(password: str):
