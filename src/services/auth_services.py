@@ -1,6 +1,5 @@
 from supabase import Client
 from fastapi.responses import JSONResponse
-import re
 
 class AuthServices:
     class Signup:
@@ -53,13 +52,15 @@ class AuthServices:
 
             if not auth_response.session or not auth_response.session.access_token:
                 raise ValueError("No access token returned")
-            
+
             role = AuthServices.Utils.get_role(db)
-            role = getattr(role, "data", None)
-            role = role[0]['role']
             
             access_token = auth_response.session.access_token
+
+            # Response
             response = JSONResponse({"role": role, "message": "Login successful"})
+
+            # Set cookie with token
             response.set_cookie(
                 key="access_token",
                 path="/",
@@ -68,6 +69,7 @@ class AuthServices:
                 secure=True,
                 samesite="none"
             )
+            
             return response
 
     class Logout:
@@ -103,17 +105,6 @@ class AuthServices:
         @staticmethod
         def get_role(db: Client):
             results = db.table("profiles").select("role").limit(1).execute()
-            return results
-        
-        @staticmethod
-        def validate_password_strength(password: str):
-            if len(password) < 8:
-                raise ValueError("Password too short")
-            if not re.search(r"[A-Z]", password):
-                raise ValueError("Password must contain an uppercase letter")
-            if not re.search(r"[a-z]", password):
-                raise ValueError("Password must contain a lowercase letter")
-            if not re.search(r"[0-9]", password):
-                raise ValueError("Password must contain a number")
-            if not re.search(r"[@$!%*?&]", password):
-                raise ValueError("Password must contain a special character")
+            role = getattr(results, "data", [{"role": "anon"}])
+            role = role[0]['role']
+            return role
