@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any
@@ -30,20 +30,3 @@ class CorsMiddleware:
     @classmethod
     def register(cls, app: FastAPI):
         app.add_middleware(CORSMiddleware, **cls.Settings)
-
-class AuthMiddleware:
-    @staticmethod
-    def get_token(request: Request):
-        try:
-            token = request.cookies.get("access_token")
-
-            if token and token.startswith('Bearer '):
-                token = token[7:]
-
-            if not token:
-                return ""
-
-            return token
-        
-        except Exception as e:
-            raise Exception(f"Error getting user: {e}")
