@@ -15,7 +15,8 @@ from fastapi import FastAPI
 from routers import (
     auth_router,
     profile_router,
-    analyze_router
+    analyze_router,
+    admin_router
 )
 
 class Routers:
@@ -24,3 +25,4 @@ class Routers:
         app.include_router(auth_router)
         app.include_router(profile_router)
         app.include_router(analyze_router)
+        app.include_router(admin_router)
