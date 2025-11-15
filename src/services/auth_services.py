@@ -12,22 +12,15 @@ class AuthServices:
                 raise ValueError("Email already exists")
             
             # Sign up the user
-            auth_response = db.auth.sign_up({
+            db.auth.sign_up({
                 "email": email,
-                "password": password
+                "password": password,
+                "options": {
+                    "data": {
+                        "username": username
+                    }
+                }
             })
-
-            # Initialize user profile
-            if auth_response.user is None:
-                raise ValueError("Failed to create user")
-
-            user = auth_response.user
-            
-            db.table("profiles").insert({
-                "id": user.id,
-                "username": username,
-                "email": email
-            }).execute()
 
             # Set session
             response = AuthServices.Login.with_password(
@@ -53,12 +46,10 @@ class AuthServices:
             if not auth_response.session or not auth_response.session.access_token:
                 raise ValueError("No access token returned")
 
-            role = AuthServices.Utils.get_role(db)
-            
             access_token = auth_response.session.access_token
 
             # Response
-            response = JSONResponse({"role": role, "message": "Login successful"})
+            response = JSONResponse("Login successful")
 
             # Set cookie with token
             response.set_cookie(
