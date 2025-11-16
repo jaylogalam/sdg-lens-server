@@ -8,7 +8,7 @@ router = APIRouter(
 )
 
 @router.get("/")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("5/second") # type: ignore
 def get_profile(request: Request, db: GetDB):
     try:
         response = ProfileServices.get_profile_data(db)
