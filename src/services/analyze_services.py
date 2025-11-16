@@ -1,4 +1,4 @@
-from core.pipeline import pipeline
+from external.pipeline import pipeline
 
 class AnalyzeServices:
     @staticmethod
