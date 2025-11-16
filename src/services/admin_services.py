@@ -1,19 +1,13 @@
 from supabase import Client
-from pydantic import BaseModel
-
-class NewUserTypes(BaseModel):
-    email: str
-    password: str
-    user_metadata: dict[str, str]
 
 class AdminServices:
     @staticmethod
-    def create_user(db: Client, data: NewUserTypes):
+    def create_user(db: Client, email: str, password: str, user_metadata: dict[str, str]):
         return db.auth.admin.create_user(
         {
-            "email": data.email,
-            "password": data.password,
-            "user_metadata": data.user_metadata,
+            "email": email,
+            "password": password,
+            "user_metadata": user_metadata,
         }
     )
         
