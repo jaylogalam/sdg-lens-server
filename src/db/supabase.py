@@ -51,7 +51,6 @@ def get_role(token: str):
     )
 
     user_metadata = decoded_payload.get("user_metadata", {})
-    print(user_metadata.get("app_role"))
     return user_metadata.get("app_role")
 
 def db_admin():
