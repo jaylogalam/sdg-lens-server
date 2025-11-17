@@ -16,18 +16,19 @@ def create_user(request: Request, db: GetDBAdmin, data: AdminModel.NewUser):
             db=db,
             email=data.email,
             password=data.password,
-            user_metadata=data.user_metadata
+            user_metadata=data.user_metadata if data.user_metadata else {}
         )
+        
         return response
         
     except Exception as e:
         raise ValueError(f"Error reading users: {str(e)}")
 
-@router.get("/read_users")
+@router.get("/read_user")
 @limiter.limit("1/second") # type: ignore
-def read_user(request: Request, db: GetDBAdmin):
+def read_user(request: Request, db: GetDBAdmin, user_id: str):
     try:
-        response = AdminServices.read_user(db)
+        response = AdminServices.read_user(db, user_id)
         return response
     
     except Exception as e:
@@ -35,9 +36,9 @@ def read_user(request: Request, db: GetDBAdmin):
 
 @router.put("/update_user")
 @limiter.limit("1/second") # type: ignore
-def update_user(request: Request, db: GetDBAdmin, id: str, data: dict[str, str]):
+def update_user(request: Request, db: GetDBAdmin, user_id: str, data: dict[str, str]):
     try:
-        response = AdminServices.update_user(db, id, data)
+        response = AdminServices.update_user(db, user_id, data)
         return response
         
     except Exception as e:
@@ -45,9 +46,9 @@ def update_user(request: Request, db: GetDBAdmin, id: str, data: dict[str, str])
 
 @router.delete("/delete_user")
 @limiter.limit("1/second") # type: ignore
-def delete_user(request: Request, db: GetDBAdmin, id: str):
+def delete_user(request: Request, db: GetDBAdmin, user_id: str):
     try:
-        response = AdminServices.delete_user(db, id)
+        response = AdminServices.delete_user(db, user_id)
         return response
         
     except Exception as e:
