@@ -54,7 +54,7 @@ def update_user(request: Request, db: GetDBAdmin, user_id: str, data: dict[str, 
     except Exception as e:
         raise ValueError(f"Error reading users: {str(e)}")
 
-@router.delete("/delete_user")
+@router.delete("/delete_user/{user_id}")
 @limiter.limit("1/second") # type: ignore
 def delete_user(request: Request, db: GetDBAdmin, user_id: str):
     try:
