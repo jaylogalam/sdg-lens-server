@@ -27,7 +27,9 @@ class AdminServices:
         users = db.auth.admin.list_users()
         response: list[dict[str, str]] = []
         for user in users:
-            response.append(AdminUtils.format_user_data(user)) # type: ignore
+            user_data = AdminUtils.format_user_data(user) # type: ignore
+            if not user_data.get('app_role') == "admin":
+                response.append(user_data)
             
         return response
     
