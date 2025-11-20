@@ -4,16 +4,14 @@ from utils.admin import AdminUtils
 class AdminServices:
     @staticmethod
     def create_user(db: Client, email: str, password: str, username: str):
-        return db.auth.admin.create_user(
-        {
+        return db.auth.admin.create_user({
             "email": email,
             "password": password,
             "user_metadata": {
                 "username": username,
                 "app_role": "user",
             },
-        }
-    )
+        })
         
     @staticmethod
     def read_user(db: Client, id: str):
