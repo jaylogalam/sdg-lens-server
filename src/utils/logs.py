@@ -1,28 +1,32 @@
-from enum import StrEnum
 from db.supabase import db_admin
+from typing import Optional, Any
 
 db = db_admin()
 
-class Type(StrEnum):
-    log = "LOG"
-    error = "ERROR"
-
 def create_log(
-    type: Type,
+    type: str,
     description: str,
-    user_id: str,
-    status_code: str,
-    data: dict[str, str]
+    user_id: Any,
+    endpoint: str,
+    data: Optional[dict[str, Any]] = None,
+    error: Optional[str] = None
 ):
-    new_log: dict[str, str | dict[str, str | dict[str, str]]] = {
+    details: Any = {
+        "user_id": user_id,
+        "endpoint": endpoint,
+    }
+
+    if data:
+        details['data'] = data
+
+    if error:
+        details['error'] = error
+
+    new_log: Any = {
         "type": type,
         "description": description,
-        "details": {
-            "user_id": user_id,
-            "status_code": status_code,
-            "data": data
-        }
+        "details": details
     }
     
-    db.table("logs").insert(new_log).execute()
+    db.table("logs").insert(new_log).execute() # type: ignore
     return
