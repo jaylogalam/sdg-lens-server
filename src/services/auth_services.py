@@ -1,6 +1,7 @@
 from supabase import Client
 from fastapi.responses import JSONResponse
 from utils.auth import AuthUtils
+from utils.logs import create_log # type: ignore
 
 class AuthServices:
     class Signup:
@@ -11,9 +12,9 @@ class AuthServices:
             
             if AuthUtils.check_email_exists(email):
                 raise ValueError("Email already exists")
-            
+
             # Sign up the user
-            db.auth.sign_up({
+            response = db.auth.sign_up({
                 "email": email,
                 "password": password,
                 "options": {
@@ -23,7 +24,15 @@ class AuthServices:
                     }
                 }
             })
-
+            
+            if response.user:
+                create_log(
+                    type='LOG',
+                    description='auth: signup',
+                    user_id=response.user.id, # type: ignore
+                    endpoint="/auth/signup",
+                )
+            
             # Set session
             response = AuthServices.Login.with_password(
                 db=db,
@@ -47,6 +56,13 @@ class AuthServices:
             if not auth_response.session or not auth_response.session.access_token:
                 raise ValueError("Login Failed")
 
+            create_log(
+                type='LOG',
+                description='auth: login',
+                user_id=auth_response.user.id, # type: ignore
+                endpoint="/auth/login",
+            )
+            
             # Response
             access_token = auth_response.session.access_token
             response = JSONResponse("Login successful")

@@ -53,6 +53,19 @@ def get_role(token: str):
     user_metadata = decoded_payload.get("user_metadata", {})
     return user_metadata.get("app_role")
 
+def get_id(token: GetToken):
+    decoded_payload = jwt.decode(
+        jwt=token,
+        algorithms=["HS256"],
+        options={
+            "verify_signature": False,
+            "verify_exp": True
+        }
+    )
+    
+    user_id = decoded_payload.get("sub")
+    return user_id
+
 def db_admin():
     return create_client(
         SUPABASE_URL,
