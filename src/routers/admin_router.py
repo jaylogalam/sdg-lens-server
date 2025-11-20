@@ -44,11 +44,17 @@ def read_users(request: Request, db: GetDBAdmin):
     except Exception as e:
         raise ValueError(f"Error reading users: {str(e)}")
 
-@router.put("/update_user")
+@router.put("/update_user/{user_id}")
 @limiter.limit("1/second") # type: ignore
 def update_user(request: Request, db: GetDBAdmin, user_id: str, data: dict[str, str]):
     try:
-        response = AdminServices.update_user(db, user_id, data)
+        print(data)
+        response = AdminServices.update_user(
+            db=db,
+            id=user_id,
+            username=data.get('username'),
+            app_role=data.get('app_role')
+        )
         return response
         
     except Exception as e:

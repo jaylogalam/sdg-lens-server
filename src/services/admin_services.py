@@ -34,8 +34,13 @@ class AdminServices:
         return response
     
     @staticmethod
-    def update_user(db: Client, id: str, data: dict[str, str]):
-        return db.auth.admin.update_user_by_id(id, data) # type: ignore
+    def update_user(db: Client, id: str, username: str, app_role: str):
+        return db.auth.admin.update_user_by_id(id, {
+            "user_metadata": {
+                "username": username,
+                "app_role": app_role
+            }
+        })
 
     @staticmethod
     def delete_user(db: Client, id: str):
