@@ -124,3 +124,18 @@ def delete_user(request: Request, db: GetDBAdmin, user_id: str, uid: GetUID):
         )
         raise ValueError(f"Error deleting user: {str(e)}")
 
+from services.admin.backup_and_restore import Backup
+
+@router.post("/create_backup")
+@limiter.limit("5/second") # type: ignore
+def create_backup(request: Request, db: GetDBAdmin):
+    try:
+        Backup.create(db)
+
+    except Exception as e:
+        raise ValueError(f"Error creating backup: {str(e)}")
+
+@router.post("/restore_from_backup")
+@limiter.limit("5/second") # type: ignore
+def restore_from_backup(request: Request, db: GetDBAdmin):
+    ...
