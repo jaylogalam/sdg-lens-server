@@ -43,3 +43,15 @@ class AdminServices:
     @staticmethod
     def delete_user(db: Client, id: str):
         return db.auth.admin.delete_user(id)
+
+    @staticmethod
+    def read_admins(db: Client):
+        users = db.auth.admin.list_users()
+        response: list[dict[str, str]] = []
+        for user in users:
+            user_data = AdminUtils.format_user_data(user) # type: ignore
+            if not user_data.get('app_role') == "user":
+                response.append(user_data)
+
+        print(response)    
+        return response

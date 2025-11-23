@@ -58,7 +58,7 @@ def read_users(request: Request, db: GetDBAdmin, uid: GetUID):
             type='LOG',
             description='admin: read users',
             user_id=uid,
-            endpoint="/admin/read_usesr",
+            endpoint="/admin/read_users",
         )
         return response
     
@@ -72,6 +72,29 @@ def read_users(request: Request, db: GetDBAdmin, uid: GetUID):
         )
         raise ValueError(f"Error reading users: {str(e)}")
 
+@router.get("/read_admins")
+@limiter.limit("1/second") # type: ignore
+def read_admins(request: Request, db: GetDBAdmin, uid: GetUID):
+    try:
+        response = AdminServices.read_admins(db)
+        create_log(
+            type='LOG',
+            description='admin: read admins',
+            user_id=uid,
+            endpoint="/admin/read_admins",
+        )
+        return response
+    
+    except Exception as e:
+        create_log(
+            type='ERROR',
+            description='admin: failed to read users',
+            user_id=uid,
+            endpoint="/admin/read_users",
+            error=str(e)
+        )
+        raise ValueError(f"Error reading users: {str(e)}")
+    
 @router.put("/update_user/{user_id}")
 @limiter.limit("1/second") # type: ignore
 def update_user(request: Request, db: GetDBAdmin, user_id: str, data: dict[str, str], uid: GetUID):
