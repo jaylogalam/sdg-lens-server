@@ -1,11 +1,7 @@
-from core.secrets import SUPABASE_POSTGRESQL
 from supabase import Client
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-
-if not SUPABASE_POSTGRESQL:
-    raise ValueError("SUPABASE_POSTGRESQL environment variable not loaded")
 
 tables = [
     {"schema": "public", "table": "profiles"},
