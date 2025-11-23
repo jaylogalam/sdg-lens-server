@@ -1,5 +1,7 @@
 # services/analyze_services.py
 from external.pipeline import pipeline
+from supabase import Client
+from utils.history import add_to_history
 
 SDG_COLORS = {
     1: "#e5243b",
@@ -24,7 +26,7 @@ SDG_COLORS = {
 
 class AnalyzeServices:
     @staticmethod
-    def analyze_text(text: str) -> dict:
+    def analyze_text(db: Client, text: str, uid: str) -> dict:
         # Call external Hugging Face pipeline
         response = pipeline(text)
 
@@ -94,7 +96,16 @@ class AnalyzeServices:
         else:
             summary = "No specific SDGs could be confidently detected from the provided text."
 
-        return {
+        results = {
             "detectedSDGs": detected_sdgs,
             "summary": summary,
         }
+
+        add_to_history(db, uid, text, results)
+        
+        return results
+
+    @staticmethod
+    def get_history(db: Client):
+        response = db.table("history").select("*").execute()
+        return response
