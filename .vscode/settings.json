@@ -10,7 +10,7 @@
         "**/.gitignore": true,
         // "**/README.md": true,
         "**/requirements.txt": true,
-        ".venv": true
+        ".venv": false
         
 
 

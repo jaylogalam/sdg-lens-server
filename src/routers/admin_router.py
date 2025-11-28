@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from db.dependencies import GetDBAdmin, GetUID
 from core.limiter import limiter
 from services.admin_services import AdminServices
+from services.admin.backup_and_restore import Backup
 from models.admin_models import AdminModel
-from utils.logs import create_log # type: ignore
+from utils.logs import create_log  # type: ignore
 
 router = APIRouter(
     prefix="/admin"
@@ -127,15 +128,71 @@ def delete_user(request: Request, db: GetDBAdmin, user_id: str, uid: GetUID):
 from services.admin.backup_and_restore import Backup
 
 @router.post("/create_backup")
-@limiter.limit("5/second") # type: ignore
-def create_backup(request: Request, db: GetDBAdmin):
+@limiter.limit("5/second")  # type: ignore
+def create_backup(
+    request: Request,
+    db: GetDBAdmin,
+    uid: GetUID,
+    folder: str | None = None,
+):
     try:
-        Backup.create(db)
+        file_name = Backup.create(db, folder)
+
+        create_log(
+            type="LOG",
+            description="admin: created backup",
+            user_id=uid,
+            endpoint="/admin/create_backup",
+            data={"file_name": file_name, "folder": folder},
+        )
+
+        return {"message": "Backup created", "file_name": file_name}
 
     except Exception as e:
-        raise ValueError(f"Error creating backup: {str(e)}")
+        create_log(
+            type="ERROR",
+            description="admin: failed to create backup",
+            user_id=uid,
+            endpoint="/admin/create_backup",
+            error=str(e),
+        )
+        # ❗ Use HTTPException so CORS still applies
+        raise HTTPException(status_code=500, detail=f"Error creating backup: {e}")
+
 
 @router.post("/restore_from_backup")
-@limiter.limit("5/second") # type: ignore
-def restore_from_backup(request: Request, db: GetDBAdmin):
-    ...
+@limiter.limit("5/second")  # type: ignore
+def restore_from_backup(
+    request: Request,
+    db: GetDBAdmin,
+    uid: GetUID,
+    file_name: str | None = None,
+    folder: str | None = None,
+):
+    """
+    If file_name is provided -> restore that one.
+    If not -> restore the latest backup (optionally under folder).
+    """
+    try:
+        used_file = Backup.restore(db, file_name=file_name, folder=folder)
+
+        create_log(
+            type="LOG",
+            description="admin: restored from backup",
+            user_id=uid,
+            endpoint="/admin/restore_from_backup",
+            data={"file_name": used_file, "folder": folder},
+        )
+
+        return {"message": "Restore completed", "file_name": used_file}
+
+    except Exception as e:
+        create_log(
+            type="ERROR",
+            description="admin: failed to restore from backup",
+            user_id=uid,
+            endpoint="/admin/restore_from_backup",
+            error=str(e),
+        )
+        # ❗ Again, HTTPException
+        raise HTTPException(status_code=500, detail=f"Error restoring from backup: {e}")
