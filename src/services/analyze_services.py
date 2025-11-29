@@ -1,6 +1,6 @@
 # services/analyze_services.py
 from supabase import Client
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from utils.history import add_to_history
 from external.pipeline import pipeline  #
 
