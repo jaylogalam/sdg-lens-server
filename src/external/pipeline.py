@@ -1,13 +1,15 @@
+# services/pipeline.py (example path)
 from core.secrets import PIPELINE_URL, PIPELINE_KEY
-from typing import Any
+from typing import Any, Dict
 import requests
 
 if not PIPELINE_URL or not PIPELINE_KEY:
-    raise ValueError("")
+    raise ValueError("PIPELINE_URL or PIPELINE_KEY is not set")
 
 headers = {
     "Authorization": f"Bearer {PIPELINE_KEY}",
 }
+
 labels: list[str] = [
     "SDG 1: No Poverty",
     "SDG 2: Zero Hunger",
@@ -25,23 +27,28 @@ labels: list[str] = [
     "SDG 14: Life Below Water",
     "SDG 15: Life on Land",
     "SDG 16: Peace, Justice, and Strong Institutions",
-    "SDG 17: Partnerships for the Goals"
+    "SDG 17: Partnerships for the Goals",
 ]
 
-def payload(text: str) -> dict[str, Any]:
-    payload: dict[str, Any] = {
+
+def build_payload(text: str) -> Dict[str, Any]:
+    return {
         "inputs": text,
         "parameters": {
-            "candidate_labels": labels
-        }
+            "candidate_labels": labels,
+        },
     }
-    return payload
 
-def pipeline(text: str):
-    response = requests.post(
-        PIPELINE_URL,
-        headers=headers,
-        json=payload(text)
-    )
 
-    return response.json()
+def pipeline(text: str) -> Dict[str, Any]:
+    try:
+        response = requests.post(
+            PIPELINE_URL,
+            headers=headers,
+            json=build_payload(text),
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        raise RuntimeError(f"Pipeline call failed: {e}")
