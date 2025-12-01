@@ -22,7 +22,7 @@ class Backup:
         """
         Create a full JSON snapshot of:
         - selected database tables (TABLES)
-        - current auth user IDs
+        - current auth users (id, email, user_metadata, timestamps)
 
         and upload it as a JSON file to Supabase Storage.
         """
@@ -42,14 +42,24 @@ class Backup:
 
             snapshot["tables"][table] = data
 
-        # --- 2) Collect current auth user IDs (for cleanup on restore) ---
+        # --- 2) Collect current auth users (full info so we can restore disabled flag etc.) ---
         try:
             users = db.auth.admin.list_users()
-            user_ids: list[str] = []
-            for user in users:
-                user_ids.append(str(user.id))
+            users_data: list[dict[str, Any]] = []
 
-            snapshot["auth_users"]["user_ids"] = user_ids
+            for user in users:
+                users_data.append(
+                    {
+                        "id": str(user.id),
+                        "email": getattr(user, "email", None),
+                        "user_metadata": getattr(user, "user_metadata", {}) or {},
+                        "created_at": getattr(user, "created_at", None),
+                        "last_sign_in_at": getattr(user, "last_sign_in_at", None),
+                        "updated_at": getattr(user, "updated_at", None),
+                    }
+                )
+
+            snapshot["auth_users"]["users"] = users_data
         except Exception as e:
             snapshot["auth_users"]["error"] = f"Failed to list auth users: {e}"
 
@@ -77,8 +87,9 @@ class Backup:
     @staticmethod
     def _get_latest_file(db: Client, folder: str | None = None) -> str:
         """
-        Return the path of the latest backup JSON file in the bucket.
+        Return the path of the latest JSON backup file in the bucket.
 
+        - Only considers files ending with ".json".
         - If folder is provided: looks only inside that folder.
         - If no files exist: raises RuntimeError.
         """
@@ -89,16 +100,24 @@ class Backup:
             files = storage.list(path=prefix)
         else:
             prefix = ""
-            files = storage.list()  # list from bucket root
+            files = storage.list()
 
         if not files:
             raise RuntimeError(
-                f"No backup files found in bucket '{BUCKET_NAME}'"
+                f"No files found in bucket '{BUCKET_NAME}'"
                 + (f" under folder '{folder}'" if folder else "")
             )
 
-        # Files are dicts like {"name": "2025-11-29T10-30-00-backup.json", ...}
-        latest = sorted(files, key=lambda f: f["name"], reverse=True)[0]
+        # Only keep .json files
+        json_files = [f for f in files if f.get("name", "").endswith(".json")]
+
+        if not json_files:
+            raise RuntimeError(
+                f"No JSON backup files (*.json) found in bucket '{BUCKET_NAME}'"
+                + (f" under folder '{folder}'" if folder else "")
+            )
+
+        latest = sorted(json_files, key=lambda f: f["name"], reverse=True)[0]
 
         if prefix:
             return prefix + latest["name"]
@@ -118,11 +137,12 @@ class Backup:
 
         Behavior:
         - Restores selected DB tables (TABLES)
-        - Cleans up auth users:
+        - Auth users:
             * deletes users created after backup
             * DOES NOT recreate deleted users
-        - Drops any profiles/history/logs rows whose user_id no longer exists
-          (to avoid foreign key violations).
+            * resets email + user_metadata (including `disabled`) for users that still exist
+        - Any table rows whose user_id no longer exists in auth.users are skipped
+          to avoid foreign key violations.
         """
         storage = db.storage.from_(BUCKET_NAME)
 
@@ -151,34 +171,54 @@ class Backup:
         tables = snapshot.get("tables", {})
         auth_snapshot = snapshot.get("auth_users", {})
 
-        # ---------- 3) AUTH USERS: delete new ones, keep existing ----------
+        # ---------- 3) AUTH USERS: delete new ones, reset metadata on existing ----------
 
-        # IDs that existed at backup time
-        snapshot_ids: set[str] = set()
-        user_ids = auth_snapshot.get("user_ids")
-        if isinstance(user_ids, list):
-            snapshot_ids = {str(uid) for uid in user_ids}
+        snapshot_users = auth_snapshot.get("users") or []
+        snapshot_by_id: dict[str, dict[str, Any]] = {}
+        for u in snapshot_users:
+            uid = str(u.get("id", ""))
+            if uid:
+                snapshot_by_id[uid] = u
 
-        # Current users before cleanup
+        snapshot_ids: set[str] = set(snapshot_by_id.keys())
+
+        # Current users BEFORE cleanup
         try:
             current_users = db.auth.admin.list_users()
         except Exception as e:
             raise RuntimeError(f"Failed to list current auth users: {e}")
 
-        # Delete users that are NOT in snapshot_ids (created after backup)
-        if snapshot_ids:
-            for user in current_users:
-                uid = str(user.id)
-                if uid not in snapshot_ids:
-                    db.auth.admin.delete_user(uid)
+        current_ids = {str(u.id) for u in current_users}
 
-        # Fetch final existing auth users after deletion
+        # (a) Delete users that are NOT in snapshot_ids (created after backup)
+        for user in current_users:
+            uid = str(user.id)
+            if snapshot_ids and uid not in snapshot_ids:
+                db.auth.admin.delete_user(uid)
+
+        # (b) Fetch final users AFTER deletion
         try:
             final_users = db.auth.admin.list_users()
         except Exception as e:
             raise RuntimeError(f"Failed to list auth users after cleanup: {e}")
 
         existing_auth_ids: set[str] = {str(u.id) for u in final_users}
+
+        # (c) Reset email + metadata (including disabled) for users that still exist
+        for user in final_users:
+            uid = str(user.id)
+            if uid in snapshot_by_id:
+                snap_user = snapshot_by_id[uid]
+                email = snap_user.get("email")
+                user_metadata = snap_user.get("user_metadata") or {}
+
+                update_data: dict[str, Any] = {
+                    "user_metadata": user_metadata,
+                }
+                if email:
+                    update_data["email"] = email
+
+                db.auth.admin.update_user_by_id(uid, update_data)
 
         # ---------- 4) TABLES: delete all rows, then insert only rows whose user_id still exists ----------
 
@@ -193,7 +233,6 @@ class Backup:
 
             filtered_rows = []
 
-            # If the table has a user_id column, filter by existing_auth_ids
             if isinstance(rows, list):
                 for row in rows:
                     if isinstance(row, dict) and "user_id" in row:
@@ -204,13 +243,14 @@ class Backup:
                         # Table without user_id → keep as-is
                         filtered_rows.append(row)
             else:
-                # Unexpected shape, just try to insert as-is
                 filtered_rows = rows
 
             if filtered_rows:
                 db.table(table_name).insert(filtered_rows).execute()
 
         return file_name
+
+
 
 
 
