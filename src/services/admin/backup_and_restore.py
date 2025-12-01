@@ -116,9 +116,13 @@ class Backup:
         - If file_name is provided → restore that file.
         - If not → restore latest file (optionally within folder).
 
-        This restores:
-        - selected DB tables (TABLES)
-        - auth users: removes any user created after the backup
+        Behavior:
+        - Restores selected DB tables (TABLES)
+        - Cleans up auth users:
+            * deletes users created after backup
+            * DOES NOT recreate deleted users
+        - Drops any profiles/history/logs rows whose user_id no longer exists
+          (to avoid foreign key violations).
         """
         storage = db.storage.from_(BUCKET_NAME)
 
@@ -129,38 +133,85 @@ class Backup:
         file_name = str(file_name)
 
         # 2) Download snapshot
-        file_bytes = storage.download(path=file_name)
-        snapshot = json.loads(file_bytes.decode("utf-8"))
+        try:
+            file_bytes = storage.download(path=file_name)
+        except Exception as e:
+            raise RuntimeError(f"Failed to download backup file '{file_name}': {e}")
+
+        if not file_bytes:
+            raise RuntimeError(f"Backup file '{file_name}' is empty.")
+
+        try:
+            snapshot = json.loads(file_bytes.decode("utf-8"))
+        except Exception as e:
+            raise RuntimeError(
+                f"Backup file '{file_name}' is not valid JSON: {e}"
+            )
 
         tables = snapshot.get("tables", {})
         auth_snapshot = snapshot.get("auth_users", {})
 
-        # --- 3) Restore application tables ---
+        # ---------- 3) AUTH USERS: delete new ones, keep existing ----------
+
+        # IDs that existed at backup time
+        snapshot_ids: set[str] = set()
+        user_ids = auth_snapshot.get("user_ids")
+        if isinstance(user_ids, list):
+            snapshot_ids = {str(uid) for uid in user_ids}
+
+        # Current users before cleanup
+        try:
+            current_users = db.auth.admin.list_users()
+        except Exception as e:
+            raise RuntimeError(f"Failed to list current auth users: {e}")
+
+        # Delete users that are NOT in snapshot_ids (created after backup)
+        if snapshot_ids:
+            for user in current_users:
+                uid = str(user.id)
+                if uid not in snapshot_ids:
+                    db.auth.admin.delete_user(uid)
+
+        # Fetch final existing auth users after deletion
+        try:
+            final_users = db.auth.admin.list_users()
+        except Exception as e:
+            raise RuntimeError(f"Failed to list auth users after cleanup: {e}")
+
+        existing_auth_ids: set[str] = {str(u.id) for u in final_users}
+
+        # ---------- 4) TABLES: delete all rows, then insert only rows whose user_id still exists ----------
+
         for table_name, rows in tables.items():
-            # Delete all rows using created_at as a "delete all" filter
+            # Delete all rows from this table
             db.table(table_name).delete().gte(
                 "created_at", "1900-01-01T00:00:00Z"
             ).execute()
 
-            if rows:
-                db.table(table_name).insert(rows).execute()
+            if not rows:
+                continue
 
-        # --- 4) Cleanup auth users: remove those created after backup ---
-        user_ids = auth_snapshot.get("user_ids")
-        if isinstance(user_ids, list):
-            allowed_ids = {str(uid) for uid in user_ids}
+            filtered_rows = []
 
-            try:
-                current_users = db.auth.admin.list_users()
-                for user in current_users:
-                    uid = str(user.id)
-                    if uid not in allowed_ids:
-                        # This user did not exist at backup time -> delete
-                        db.auth.admin.delete_user(uid)
-            except Exception as e:
-                raise RuntimeError(f"Error restoring auth users: {e}")
+            # If the table has a user_id column, filter by existing_auth_ids
+            if isinstance(rows, list):
+                for row in rows:
+                    if isinstance(row, dict) and "user_id" in row:
+                        uid = str(row.get("user_id"))
+                        if uid in existing_auth_ids:
+                            filtered_rows.append(row)
+                    else:
+                        # Table without user_id → keep as-is
+                        filtered_rows.append(row)
+            else:
+                # Unexpected shape, just try to insert as-is
+                filtered_rows = rows
+
+            if filtered_rows:
+                db.table(table_name).insert(filtered_rows).execute()
 
         return file_name
+
 
 
 
