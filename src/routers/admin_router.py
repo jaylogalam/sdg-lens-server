@@ -219,3 +219,71 @@ def restore_from_backup(
         )
         # ❗ Again, HTTPException
         raise HTTPException(status_code=500, detail=f"Error restoring from backup: {e}")
+    
+from fastapi.responses import Response
+@router.get("/backups")
+@limiter.limit("5/second")  # type: ignore
+def list_backups(
+    request: Request,
+    db: GetDBAdmin,
+    uid: GetUID,
+    folder: str | None = None,
+):
+    """
+    List all backups (optionally under a folder).
+    Used by the frontend to display backups by date.
+    """
+    try:
+        backups = Backup.list_backups(db, folder)
+        return backups
+    except Exception as e:
+        create_log(
+            type="ERROR",
+            description="admin: failed to list backups",
+            user_id=uid,
+            endpoint="/admin/backups",
+            error=str(e),
+        )
+        raise HTTPException(status_code=500, detail=f"Error listing backups: {str(e)}")
+
+
+@router.get("/backups/download")
+@limiter.limit("5/second")  # type: ignore
+def download_backup(
+    request: Request,
+    db: GetDBAdmin,
+    uid: GetUID,
+    file_name: str,
+):
+    """
+    Download a backup JSON file so the browser will save it
+    (user chooses the folder on their machine).
+    """
+    try:
+        file_bytes = Backup.get_backup_bytes(db, file_name)
+        filename_only = Path(file_name).name
+
+        create_log(
+            type="LOG",
+            description="admin: downloaded backup",
+            user_id=uid,
+            endpoint="/admin/backups/download",
+            data={"file_name": file_name},
+        )
+
+        return Response(
+            content=file_bytes,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename_only}"'
+            },
+        )
+    except Exception as e:
+        create_log(
+            type="ERROR",
+            description="admin: failed to download backup",
+            user_id=uid,
+            endpoint="/admin/backups/download",
+            error=str(e),
+        )
+        raise HTTPException(status_code=500, detail=f"Error downloading backup: {str(e)}")
