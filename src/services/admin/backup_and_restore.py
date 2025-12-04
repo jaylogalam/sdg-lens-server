@@ -6,28 +6,53 @@ from typing import Any
 import json
 from pathlib import Path
 
+# Tables included in backup/restore
+# Make sure your audit logs table is here (e.g. "logs")
 TABLES = [
     "profiles",
     "history",
     "logs",
 ]
 
+# Supabase Storage bucket name (create this bucket in Supabase)
 BUCKET_NAME = "json-backups"
 
 
 class Backup:
-    PH_TZ = timezone(timedelta(hours=8))
+    PH_TZ = timezone(timedelta(hours=8))  # Philippine Time (UTC+8)
+
+    # ---------- INTERNAL: label → slug ----------
+    @staticmethod
+    def _slugify_label(label: str) -> str:
+        # keep only letters, numbers, dash, underscore
+        safe = "".join(c if (c.isalnum() or c in "-_") else "-" for c in label)
+        return safe.strip("-_")
 
     # ---------- CREATE BACKUP ----------
     @staticmethod
-    def create(db: Client, folder: str | None = None) -> str:
+    def create(
+        db: Client,
+        folder: str | None = None,
+        label: str | None = None,
+    ) -> str:
+        """
+        Create a full JSON snapshot and upload it to Supabase Storage.
+
+        Filename pattern (Philippine time):
+          YYYY-MM-DDTHH-MM-SS[-slug]-backup.json
+
+        Examples:
+          2025-12-04T08-15-00-backup.json
+          2025-12-04T08-20-00-before-migration-backup.json
+        """
+
         snapshot: dict[str, Any] = {
             "created_at": datetime.now(timezone.utc).isoformat(),
             "tables": {},
             "auth_users": {},
         }
 
-        # 1) application tables
+        # 1) Collect table data
         for table in TABLES:
             response = db.table(table).select("*").execute()
             data = getattr(response, "data", None)
@@ -35,7 +60,7 @@ class Backup:
                 raise RuntimeError(f"Error getting data from table '{table}'")
             snapshot["tables"][table] = data
 
-        # 2) auth users
+        # 2) Collect auth users
         try:
             users = db.auth.admin.list_users()
             users_data: list[dict[str, Any]] = []
@@ -54,16 +79,24 @@ class Backup:
         except Exception as e:
             snapshot["auth_users"]["error"] = f"Failed to list auth users: {e}"
 
-        # 3) filename (UTC, lexicographically sortable)
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
-        file_name = f"{ts}-backup.json"
+        # 3) PH timestamp at front (sortable)
+        now_ph = datetime.now(Backup.PH_TZ)
+        ts = now_ph.strftime("%Y-%m-%dT%H-%M-%S")  # 19 chars
 
+        # 4) Optional human label → slug
+        slug = Backup._slugify_label(label) if label else ""
+        if slug:
+            base_name = f"{ts}-{slug}-backup.json"
+        else:
+            base_name = f"{ts}-backup.json"
+
+        file_name = base_name
         if folder:
             folder = folder.strip("/")
-            file_name = f"{folder}/{file_name}"
+            file_name = f"{folder}/{base_name}"
 
+        # 5) Upload to Supabase Storage
         file_bytes = json.dumps(snapshot, default=str).encode("utf-8")
-
         storage = db.storage.from_(BUCKET_NAME)
         storage.upload(
             path=file_name,
@@ -73,9 +106,13 @@ class Backup:
 
         return file_name
 
-    # ---------- LIST BACKUPS (for dropdown) ----------
+    # ---------- LIST BACKUPS ----------
     @staticmethod
     def list_backups(db: Client, folder: str | None = None) -> list[dict[str, Any]]:
+        """
+        List all JSON backup files, sorted (newest first),
+        with timestamps converted to Philippine Time (UTC+8).
+        """
         storage = db.storage.from_(BUCKET_NAME)
 
         if folder:
@@ -97,24 +134,26 @@ class Backup:
                 continue
 
             file_name = prefix + name if prefix else name
-            base = Path(name).name
-            ts_str = base.replace("-backup.json", "")
+            base = Path(name).name  # e.g. "2025-12-04T08-15-00-label-backup.json"
+
+            # Timestamp is always first 19 chars: "YYYY-MM-DDTHH-MM-SS"
+            ts_part = base[:19]
 
             try:
-                dt_utc = datetime.strptime(ts_str, "%Y-%m-%dT%H-%M-%S").replace(
-                    tzinfo=timezone.utc
+                # Interpret the timestamp as PH time
+                dt_ph = datetime.strptime(ts_part, "%Y-%m-%dT%H-%M-%S").replace(
+                    tzinfo=Backup.PH_TZ
                 )
             except ValueError:
                 continue
 
-            dt_ph = dt_utc.astimezone(Backup.PH_TZ)
-            label = dt_ph.strftime("%b %d, %Y, %I:%M %p PH Time")
+            label_human = dt_ph.strftime("%b %d, %Y, %I:%M %p PH Time")
 
             backups.append(
                 {
                     "file_name": file_name,
                     "created_at": dt_ph.isoformat(),
-                    "label": label,
+                    "label": label_human,
                     "folder": folder,
                 }
             )
@@ -122,16 +161,20 @@ class Backup:
         backups.sort(key=lambda b: b["created_at"], reverse=True)
         return backups
 
-    # ---------- DOWNLOAD BYTES (for download endpoint) ----------
+    # ---------- RAW BYTES FOR DOWNLOAD ----------
     @staticmethod
     def get_backup_bytes(db: Client, file_name: str) -> bytes:
+        """
+        Download the raw JSON backup file content from storage.
+        Used by the download endpoint.
+        """
         storage = db.storage.from_(BUCKET_NAME)
         file_bytes = storage.download(path=file_name)
         if not file_bytes:
             raise RuntimeError(f"Backup file '{file_name}' is empty or not found.")
         return file_bytes
 
-    # ---------- INTERNAL: pick latest ----------
+    # ---------- INTERNAL: PICK LATEST FILE ----------
     @staticmethod
     def _get_latest_file(db: Client, folder: str | None = None) -> str:
         storage = db.storage.from_(BUCKET_NAME)
@@ -144,32 +187,81 @@ class Backup:
             files = storage.list()
 
         if not files:
-            raise RuntimeError("No backup files available.")
+            raise RuntimeError(
+                f"No files found in bucket '{BUCKET_NAME}'"
+                + (f" under folder '{folder}'" if folder else "")
+            )
 
         json_files = [f for f in files if f.get("name", "").endswith(".json")]
         if not json_files:
-            raise RuntimeError("No JSON backup files found.")
+            raise RuntimeError(
+                f"No JSON backup files (*.json) found in bucket '{BUCKET_NAME}'"
+                + (f" under folder '{folder}'" if folder else "")
+            )
 
         latest = sorted(json_files, key=lambda f: f["name"], reverse=True)[0]
         return prefix + latest["name"] if prefix else latest["name"]
 
-    # ---------- INTERNAL: apply snapshot (time-travel logic here) ----------
+    # ---------- RESTORE FROM STORAGE ----------
     @staticmethod
-    def _apply_snapshot(db: Client, snapshot: dict[str, Any]) -> None:
+    def restore(
+        db: Client,
+        file_name: str | None = None,
+        folder: str | None = None,
+    ) -> str:
         """
-        Apply a snapshot to the database.
+        Restore from a backup JSON file stored in Supabase Storage.
 
-        Rules:
-        - DO NOT delete auth users (auth.users rows are never destroyed).
-        - Users not present in snapshot → soft disabled via user_metadata.disabled = True.
-        - Users present in snapshot → email + user_metadata overwritten from snapshot.
-        - App tables (profiles, history, logs) are fully replaced by snapshot content.
+        - If file_name is provided → restore that file.
+        - If not → restore latest file (optionally within folder).
         """
+        storage = db.storage.from_(BUCKET_NAME)
+
+        # 1) Decide which file to use
+        if not file_name:
+            file_name = Backup._get_latest_file(db, folder)
+
+        file_name = str(file_name)
+
+        # 2) Download snapshot
+        try:
+            file_bytes = storage.download(path=file_name)
+        except Exception as e:
+            raise RuntimeError(f"Failed to download backup file '{file_name}': {e}")
+
+        return Backup._restore_from_bytes_common(db, file_bytes, file_name)
+
+    # ---------- RESTORE FROM UPLOADED BYTES ----------
+    @staticmethod
+    def restore_from_bytes(db: Client, file_bytes: bytes) -> str:
+        """
+        Restore from a locally uploaded JSON backup file.
+
+        Returns a label-like string (e.g. "uploaded-file" or created_at) for logs.
+        """
+        return Backup._restore_from_bytes_common(db, file_bytes, "<uploaded-file>")
+
+    # ---------- INTERNAL SHARED RESTORE LOGIC ----------
+    @staticmethod
+    def _restore_from_bytes_common(
+        db: Client,
+        file_bytes: bytes,
+        origin_name: str,
+    ) -> str:
+        if not file_bytes:
+            raise RuntimeError(f"Backup file '{origin_name}' is empty.")
+
+        try:
+            snapshot = json.loads(file_bytes.decode("utf-8"))
+        except Exception as e:
+            raise RuntimeError(
+                f"Backup '{origin_name}' is not valid JSON: {e}"
+            )
 
         tables = snapshot.get("tables", {})
         auth_snapshot = snapshot.get("auth_users", {})
 
-        # 1) snapshot users map
+        # ---------- AUTH USERS ----------
         snapshot_users = auth_snapshot.get("users") or []
         snapshot_by_id: dict[str, dict[str, Any]] = {}
         for u in snapshot_users:
@@ -179,40 +271,45 @@ class Backup:
 
         snapshot_ids: set[str] = set(snapshot_by_id.keys())
 
-        # 2) current auth users (we never delete these)
+        # Current users BEFORE cleanup
         try:
             current_users = db.auth.admin.list_users()
         except Exception as e:
             raise RuntimeError(f"Failed to list current auth users: {e}")
 
-        # 3) update/soft-disable users
-        for user in current_users:
-            uid = str(user.id)
-            current_meta = getattr(user, "user_metadata", {}) or {}
+        # (a) Delete users that are NOT in snapshot_ids (created after backup)
+        if snapshot_ids:
+            for user in current_users:
+                uid = str(user.id)
+                if uid not in snapshot_ids:
+                    db.auth.admin.delete_user(uid)
 
-            if uid in snapshot_ids:
-                # user exists in snapshot → restore from snapshot
+        # (b) Fetch final users AFTER deletion
+        try:
+            final_users = db.auth.admin.list_users()
+        except Exception as e:
+            raise RuntimeError(f"Failed to list auth users after cleanup: {e}")
+
+        existing_auth_ids: set[str] = {str(u.id) for u in final_users}
+
+        # (c) Reset email + metadata for existing users
+        for user in final_users:
+            uid = str(user.id)
+            if uid in snapshot_by_id:
                 snap_user = snapshot_by_id[uid]
                 email = snap_user.get("email")
                 user_metadata = snap_user.get("user_metadata") or {}
 
-                update_data: dict[str, Any] = {
-                    "user_metadata": user_metadata,
-                }
+                update_data: dict[str, Any] = {"user_metadata": user_metadata}
                 if email:
                     update_data["email"] = email
 
                 db.auth.admin.update_user_by_id(uid, update_data)
-            else:
-                # not in snapshot → soft disable
-                new_meta = dict(current_meta)
-                new_meta["disabled"] = True
-                new_meta["disabled_by_restore"] = True
-                db.auth.admin.update_user_by_id(uid, {"user_metadata": new_meta})
 
-        # 4) replace table data exactly with snapshot
+        # ---------- TABLES: wipe & re-insert ----------
         for table_name, rows in tables.items():
-            # wipe table (using generic filter)
+            # Delete all rows (using created_at to satisfy filter requirement).
+            # Assumes these tables have a created_at column.
             db.table(table_name).delete().gte(
                 "created_at", "1900-01-01T00:00:00Z"
             ).execute()
@@ -220,47 +317,25 @@ class Backup:
             if not rows:
                 continue
 
+            filtered_rows = []
+
             if isinstance(rows, list):
-                to_insert = rows
+                for row in rows:
+                    if isinstance(row, dict) and "user_id" in row:
+                        uid = str(row.get("user_id"))
+                        if uid in existing_auth_ids:
+                            filtered_rows.append(row)
+                    else:
+                        # Table without user_id → keep as-is
+                        filtered_rows.append(row)
             else:
-                to_insert = rows
+                filtered_rows = rows
 
-            db.table(table_name).insert(to_insert).execute()
+            if filtered_rows:
+                db.table(table_name).insert(filtered_rows).execute()
 
-    # ---------- RESTORE FROM STORAGE ----------
-    @staticmethod
-    def restore(db: Client, file_name: str | None = None, folder: str | None = None) -> str:
-        storage = db.storage.from_(BUCKET_NAME)
+        return origin_name
 
-        if not file_name:
-            file_name = Backup._get_latest_file(db, folder)
-
-        file_name = str(file_name)
-        file_bytes = storage.download(path=file_name)
-        if not file_bytes:
-            raise RuntimeError(f"Backup file '{file_name}' is empty.")
-
-        try:
-            snapshot = json.loads(file_bytes.decode("utf-8"))
-        except Exception as e:
-            raise RuntimeError(f"Backup file '{file_name}' is not valid JSON: {e}")
-
-        Backup._apply_snapshot(db, snapshot)
-        return file_name
-
-    # ---------- RESTORE FROM UPLOADED FILE ----------
-    @staticmethod
-    def restore_from_bytes(db: Client, file_bytes: bytes) -> str:
-        if not file_bytes:
-            raise RuntimeError("Uploaded backup file is empty.")
-
-        try:
-            snapshot = json.loads(file_bytes.decode("utf-8"))
-        except Exception as e:
-            raise RuntimeError(f"Uploaded backup is not valid JSON: {e}")
-
-        Backup._apply_snapshot(db, snapshot)
-        return "uploaded-backup.json"
 
 # OLD CODE USING CSV BACKUPS
 

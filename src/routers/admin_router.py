@@ -1,19 +1,23 @@
+# routers/admin_router.py
+
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from db.dependencies import GetDBAdmin, GetUID
 from core.limiter import limiter
 from services.admin_services import AdminServices
 from services.admin.backup_and_restore import Backup
 from models.admin_models import AdminModel
 from utils.logs import create_log  # type: ignore
-from fastapi.responses import StreamingResponse
+from typing import Optional
 
-router = APIRouter(prefix="/admin")
 router = APIRouter(
     prefix="/admin"
 )
 
+# ---------- USER MANAGEMENT (unchanged, just included for completeness) ----------
+
 @router.post("/create_user")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def create_user(request: Request, db: GetDBAdmin, data: AdminModel.NewUser, uid: GetUID):
     try:
         response = AdminServices.create_user(
@@ -22,152 +26,163 @@ def create_user(request: Request, db: GetDBAdmin, data: AdminModel.NewUser, uid:
             password=data.password,
             username=data.username,
         )
-        
+
         create_log(
-            type='LOG',
-            description='admin: created new user',
+            type="LOG",
+            description="admin: created new user",
             user_id=uid,
             endpoint="/admin/create_user",
-            data=dict(data)
+            data=dict(data),
         )
         return response
-        
+
     except Exception as e:
         create_log(
-            type='ERROR',
-            description='admin: failed to create user',
+            type="ERROR",
+            description="admin: failed to create user",
             user_id=uid,
             endpoint="/admin/create_user",
-            error=str(e)
+            error=str(e),
         )
-        raise ValueError(f"An error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 
 @router.get("/read_user/{user_id}")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def read_user(request: Request, db: GetDBAdmin, user_id: str, uid: GetUID):
     try:
         response = AdminServices.read_user(db, user_id)
         return response
-    
+
     except Exception as e:
-        raise ValueError(f"Error reading users: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error reading user: {str(e)}")
+
 
 @router.get("/read_users")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def read_users(request: Request, db: GetDBAdmin, uid: GetUID):
     try:
         response = AdminServices.read_users(db)
         create_log(
-            type='LOG',
-            description='admin: read users',
+            type="LOG",
+            description="admin: read users",
             user_id=uid,
             endpoint="/admin/read_users",
         )
         return response
-    
+
     except Exception as e:
         create_log(
-            type='ERROR',
-            description='admin: failed to read users',
+            type="ERROR",
+            description="admin: failed to read users",
             user_id=uid,
             endpoint="/admin/read_users",
-            error=str(e)
+            error=str(e),
         )
-        raise ValueError(f"Error reading users: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error reading users: {str(e)}")
+
 
 @router.get("/read_admins")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def read_admins(request: Request, db: GetDBAdmin, uid: GetUID):
     try:
         response = AdminServices.read_admins(db)
         create_log(
-            type='LOG',
-            description='admin: read admins',
+            type="LOG",
+            description="admin: read admins",
             user_id=uid,
             endpoint="/admin/read_admins",
         )
         return response
-    
+
     except Exception as e:
         create_log(
-            type='ERROR',
-            description='admin: failed to read users',
+            type="ERROR",
+            description="admin: failed to read admins",
             user_id=uid,
-            endpoint="/admin/read_users",
-            error=str(e)
+            endpoint="/admin/read_admins",
+            error=str(e),
         )
-        raise ValueError(f"Error reading users: {str(e)}")
-    
+        raise HTTPException(status_code=500, detail=f"Error reading admins: {str(e)}")
+
+
 @router.put("/update_user/{user_id}")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def update_user(request: Request, db: GetDBAdmin, user_id: str, data: dict[str, str], uid: GetUID):
     try:
         response = AdminServices.update_user(
             db=db,
             id=user_id,
-            username=data.get('username'), # type: ignore
-            app_role=data.get('app_role')  # type: ignore
+            username=data.get("username"),  # type: ignore
+            app_role=data.get("app_role"),  # type: ignore
         )
         create_log(
-            type='LOG',
-            description=f'admin: updated user, id={user_id}',
+            type="LOG",
+            description=f"admin: updated user, id={user_id}",
             user_id=uid,
             endpoint="/admin/update_user",
-            data=data
+            data=data,
         )
         return response
-        
+
     except Exception as e:
         create_log(
-            type='ERROR',
-            description=f'admin: failed to update user, id={user_id}',
+            type="ERROR",
+            description=f"admin: failed to update user, id={user_id}",
             user_id=uid,
             endpoint="/admin/update_user",
-            error=str(e)
+            error=str(e),
         )
-        raise ValueError(f"Error updating user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
+
 
 @router.delete("/delete_user/{user_id}")
-@limiter.limit("1/second") # type: ignore
+@limiter.limit("1/second")  # type: ignore
 def delete_user(request: Request, db: GetDBAdmin, user_id: str, uid: GetUID):
     try:
         response = AdminServices.delete_user(db, user_id)
         create_log(
-            type='LOG',
-            description=f'admin: deleted user, id={user_id}',
+            type="LOG",
+            description=f"admin: deleted user, id={user_id}",
             user_id=uid,
             endpoint="/admin/delete_user",
         )
         return response
-        
+
     except Exception as e:
         create_log(
-            type='ERROR',
-            description=f'admin: failed to update user, id={user_id}',
+            type="ERROR",
+            description=f"admin: failed to delete user, id={user_id}",
             user_id=uid,
             endpoint="/admin/delete_user",
-            error=str(e)
+            error=str(e),
         )
-        raise ValueError(f"Error deleting user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
 
-# ---------- CREATE BACKUP ----------
+
+# ---------- BACKUP & RESTORE ----------
+
 @router.post("/create_backup")
 @limiter.limit("5/second")  # type: ignore
 def create_backup(
     request: Request,
     db: GetDBAdmin,
     uid: GetUID,
-    folder: str | None = None,  # can pass ?folder=prod if you want
+    folder: Optional[str] = None,  # ?folder=prod (optional)
+    label: Optional[str] = None,   # ?label=before-migration (optional)
 ):
+    """
+    Create a backup (stored in Supabase Storage).
+    """
     try:
-        file_name = Backup.create(db, folder)
+        file_name = Backup.create(db, folder=folder, label=label)
 
         create_log(
             type="LOG",
             description="admin: created backup",
             user_id=uid,
             endpoint="/admin/create_backup",
-            data={"file_name": file_name, "folder": folder},
+            data={"file_name": file_name, "folder": folder, "label": label},
         )
 
         return {"message": "Backup created", "file_name": file_name}
@@ -182,72 +197,65 @@ def create_backup(
         raise HTTPException(status_code=500, detail=f"Error creating backup: {str(e)}")
 
 
-# ---------- LIST BACKUPS ----------
 @router.get("/backups")
 @limiter.limit("5/second")  # type: ignore
 def list_backups(
     request: Request,
     db: GetDBAdmin,
     uid: GetUID,
-    folder: str | None = None,
+    folder: Optional[str] = None,  # ?folder=prod
 ):
+    """
+    List available backups (newest first).
+    """
     try:
-        backups = Backup.list_backups(db, folder)
-
-        create_log(
-            type="LOG",
-            description="admin: listed backups",
-            user_id=uid,
-            endpoint="/admin/backups",
-            data={"count": len(backups), "folder": folder},
-        )
-
+        backups = Backup.list_backups(db, folder=folder)
         return backups
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing backups: {str(e)}")
 
 
-# ---------- DOWNLOAD BACKUP (for browser download) ----------
-@router.get("/backups/download")
+@router.get("/download_backup")
 @limiter.limit("5/second")  # type: ignore
 def download_backup(
     request: Request,
     db: GetDBAdmin,
     uid: GetUID,
-    file_name: str,
+    file_name: str,          # required query param
 ):
+    """
+    Download a specific backup file to the client.
+    """
     try:
         file_bytes = Backup.get_backup_bytes(db, file_name)
 
-        create_log(
-            type="LOG",
-            description="admin: downloaded backup",
-            user_id=uid,
-            endpoint="/admin/backups/download",
-            data={"file_name": file_name},
-        )
-
+        download_name = file_name.split("/")[-1]  # strip folder
         return StreamingResponse(
             iter([file_bytes]),
             media_type="application/json",
             headers={
-                "Content-Disposition": f'attachment; filename="{Path(file_name).name}"'
+                "Content-Disposition": f'attachment; filename="{download_name}"'
             },
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error downloading backup: {str(e)}")
 
 
-# ---------- RESTORE FROM STORED BACKUP ----------
 @router.post("/restore_from_backup")
 @limiter.limit("5/second")  # type: ignore
 def restore_from_backup(
     request: Request,
     db: GetDBAdmin,
     uid: GetUID,
-    file_name: str | None = None,  # ?file_name=... or omit to use latest
-    folder: str | None = None,
+    file_name: Optional[str] = None,  # ?file_name=some/path.json
+    folder: Optional[str] = None,     # OR ?folder=prod to pick latest in folder
 ):
+    """
+    Restore from a backup JSON file stored in Supabase Storage.
+
+    - If file_name is provided → restore that one.
+    - If not → restore latest (optionally under folder).
+    """
     try:
         used_file = Backup.restore(db, file_name=file_name, folder=folder)
 
@@ -271,34 +279,37 @@ def restore_from_backup(
         raise HTTPException(status_code=500, detail=f"Error restoring from backup: {str(e)}")
 
 
-# ---------- RESTORE FROM UPLOADED FILE ----------
-@router.post("/restore_from_upload")
+@router.post("/restore_from_uploaded_backup")
 @limiter.limit("5/second")  # type: ignore
-async def restore_from_upload(
+async def restore_from_uploaded_backup(
     request: Request,
     db: GetDBAdmin,
     uid: GetUID,
     file: UploadFile = File(...),
 ):
+    """
+    Restore from a backup JSON file uploaded from the client
+    (e.g. a file previously downloaded).
+    """
     try:
         file_bytes = await file.read()
-        used_file = Backup.restore_from_bytes(db, file_bytes)
+        used_name = Backup.restore_from_bytes(db, file_bytes)
 
         create_log(
             type="LOG",
-            description="admin: restored from uploaded backup file",
+            description="admin: restored from uploaded backup",
             user_id=uid,
-            endpoint="/admin/restore_from_upload",
-            data={"file_name": used_file, "uploaded_name": file.filename},
+            endpoint="/admin/restore_from_uploaded_backup",
+            data={"file_name": used_name, "uploaded_filename": file.filename},
         )
 
-        return {"message": "Restore from uploaded file completed", "file_name": used_file}
+        return {"message": "Restore completed from uploaded file", "file_name": used_name}
     except Exception as e:
         create_log(
             type="ERROR",
             description="admin: failed to restore from uploaded backup",
             user_id=uid,
-            endpoint="/admin/restore_from_upload",
+            endpoint="/admin/restore_from_uploaded_backup",
             error=str(e),
         )
         raise HTTPException(status_code=500, detail=f"Error restoring from uploaded backup: {str(e)}")
