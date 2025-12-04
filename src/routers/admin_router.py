@@ -1,4 +1,3 @@
-# routers/admin_router.py (only backup/restore part shown)
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File
 from db.dependencies import GetDBAdmin, GetUID
 from core.limiter import limiter
